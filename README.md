@@ -1,60 +1,122 @@
-# ◈ Loan Intelligence — NTI Machine Learning Project
+<div align="center">
 
-<p align="center">
-<strong>End-to-end Machine Learning system for loan-status prediction</strong><br>
-Research • preprocessing • class balancing • model benchmarking • interactive inference • batch CSV scoring
-</p>
+# ◈ LOAN INTELLIGENCE
+### NTI Machine Learning Track · End-to-End Loan Status Classification
 
-<p align="center">
-<img src="https://img.shields.io/badge/Track-Machine%20Learning-0EA5E9">
-<img src="https://img.shields.io/badge/Selected%20Model-XGBoost-7C3AED">
-<img src="https://img.shields.io/badge/Test%20Accuracy-92.87%25-22C55E">
-<img src="https://img.shields.io/badge/UI-Streamlit-FF4B4B?logo=streamlit&logoColor=white">
-</p>
+**From raw applicant data → reproducible ML pipeline → benchmarked models → interactive decision studio → deployable demo.**
 
-> A portfolio-grade NTI Machine Learning project that turns a loan-status classification experiment into a reusable ML system and an interactive product demo.
+<br>
 
-## 01 — What we built
+<img src="https://img.shields.io/badge/Track-Machine%20Learning-06B6D4?style=for-the-badge">
+<img src="https://img.shields.io/badge/Model-XGBoost-7C3AED?style=for-the-badge">
+<img src="https://img.shields.io/badge/Test%20Accuracy-92.87%25-22C55E?style=for-the-badge">
+<img src="https://img.shields.io/badge/App-Streamlit-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white">
+<img src="https://img.shields.io/badge/CI-GitHub%20Actions-2088FF?style=for-the-badge&logo=githubactions&logoColor=white">
+
+<br><br>
+
+<a href="https://github.com/engyusufayman06/loan-prediction-nti">Repository</a> ·
+<a href="https://www.nti.sci.eg/">NTI</a>
+
+</div>
+
+---
+
+## ⚡ The project in 30 seconds
+
+**Loan Intelligence** is an educational machine-learning system for **binary loan-status classification**. Instead of stopping at a notebook, the project packages the experiment into a small product: a reusable preprocessing/model layer, an interactive Streamlit application, batch CSV inference, model diagnostics, and an in-app technical presentation.
+
+> **Headline result:** XGBoost reached **92.87% held-out test accuracy**, with **0.87 class-1 precision** and **0.83 class-1 F1** in the project's six-model benchmark.
+
+This repository is intentionally transparent: metrics, preprocessing decisions, class balancing, trade-offs, limitations, and the path toward production are documented rather than hidden behind a single accuracy number.
+
+---
+
+## 🎬 Experience the system
+
+The Streamlit app is organized as a product workspace:
+
+| Workspace | What it does |
+|---|---|
+| **Prediction Studio** | Enter a complete applicant profile and run real XGBoost inference. |
+| **Batch Lab** | Upload a CSV, validate its schema, score rows, inspect results, and download predictions. |
+| **Project Presentation** | Navigate a fullscreen, interactive technical deck covering the complete project story. |
+| **Model Insights** | Explore the six-model benchmark, XGBoost feature importance, confusion matrix, and metric trade-offs. |
+| **Team & About** | Project identity, team members, and NTI context. |
+
+### Product flow
 
 ```text
-loan_data.csv
-      ↓
-EDA / research notebook
-      ↓
-Reusable ML core — src/model.py
-      ├──────────────┬──────────────┐
-      ↓              ↓              ↓
-Prediction Studio  Batch Lab   Model Insights
-      └──────────────┴──────────────┘
-                     ↓
-          16-slide in-app presentation
+                    ┌─────────────────────────┐
+                    │      loan_data.csv       │
+                    └────────────┬────────────┘
+                                 │
+                                 ▼
+                    ┌─────────────────────────┐
+                    │ Research / EDA Notebook │
+                    └────────────┬────────────┘
+                                 │
+                                 ▼
+                 ┌───────────────────────────────┐
+                 │      Reusable ML Core          │
+                 │  cleaning → encoding → scale  │
+                 │       → SMOTETomek → XGB      │
+                 └───────────────┬───────────────┘
+                                 │
+                ┌────────────────┼────────────────┐
+                ▼                ▼                ▼
+       ┌────────────────┐ ┌───────────────┐ ┌───────────────┐
+       │ Prediction     │ │ Batch Lab     │ │ Model Insights│
+       │ Studio         │ │ CSV scoring   │ │ Diagnostics   │
+       └────────────────┘ └───────────────┘ └───────────────┘
+                                 │
+                                 ▼
+                    ┌─────────────────────────┐
+                    │ Interactive Presentation│
+                    └─────────────────────────┘
 ```
 
-The repository separates research, reusable ML logic, UI, tests and documentation.
+---
 
-## 02 — Benchmark
+# 01 · Problem framing
 
-| Model | Accuracy | Precision (Class 1) | Recall (Class 1) | F1 (Class 1) |
-|---|---:|---:|---:|---:|
-| Logistic Regression | 86.55% | 0.64 | **0.92** | 0.75 |
-| KNN | 86.29% | 0.64 | 0.88 | 0.74 |
-| Decision Tree | 89.28% | 0.73 | 0.82 | 0.77 |
-| Random Forest | 89.48% | 0.71 | 0.88 | 0.79 |
-| SVM | 88.02% | 0.67 | **0.92** | 0.77 |
-| **XGBoost** | **92.87%** | **0.87** | 0.80 | **0.83** |
+### Objective
 
-XGBoost is the selected benchmark model because it leads this comparison on test accuracy, class-1 precision and class-1 F1. Logistic Regression and SVM have higher class-1 recall, so this is a trade-off rather than a universal superiority claim.
+Build a **binary classification** model that predicts `loan_status` from applicant and loan characteristics.
 
-## 03 — Dataset
+### Why this is an ML problem
 
-- `loan_data.csv` is included in the repository.
-- Rows after preprocessing: **44,990**
-- Processed model features: **20**
-- Target: `loan_status`
-- Original training distribution: **27,991 / 8,001**
-- After SMOTETomek: **27,887 / 27,887**
+The system learns a mapping from historical labelled examples to a binary target. The project therefore focuses on:
 
-The raw inference contract contains 13 applicant fields:
+- supervised learning;
+- preprocessing and feature representation;
+- class-imbalance handling;
+- model comparison;
+- held-out evaluation;
+- reusable inference.
+
+### Important boundary
+
+This is **not** a production credit-underwriting engine. It is an NTI educational / portfolio project designed to demonstrate an end-to-end ML workflow.
+
+---
+
+# 02 · Dataset snapshot
+
+| Property | Value |
+|---|---:|
+| Source file | `loan_data.csv` |
+| Rows after preprocessing | **44,990** |
+| Encoded model features | **20** |
+| Target | `loan_status` |
+| Original class 0 | **27,991** |
+| Original class 1 | **8,001** |
+| Post-SMOTETomek class 0 | **27,887** |
+| Post-SMOTETomek class 1 | **27,887** |
+
+The notebook identifies the dataset source as Kaggle. The exact dataset URL is not recorded in the project files, so this README deliberately does **not** fabricate one.
+
+### Raw inference schema
 
 ```text
 person_age
@@ -72,192 +134,377 @@ person_gender
 person_education
 ```
 
-`loan_id` is optional for batch uploads. `loan_status` is optional and is used only to evaluate uploaded labelled data.
+`loan_id` may be included in batch files as an identifier and is ignored by the model. `loan_status` may be included in labelled uploads for evaluation; it is **not** used as an inference feature.
 
-The notebook identifies the dataset source as Kaggle, but the exact URL is not recorded in the project files and is therefore not fabricated.
+---
 
-## 04 — ML pipeline
-
-1. Remove `loan_id`.
-2. IQR clipping on selected numeric variables.
-3. Filter unrealistic age and employment-experience values.
-4. Encode binary/ordinal variables and one-hot encode nominal variables.
-5. Train/test split with `random_state=42`.
-6. Fit `RobustScaler` on training data only.
-7. Apply `SMOTETomek` to scaled training data only.
-8. Benchmark six classifiers.
-9. Select XGBoost from the benchmark.
-10. Reuse the same preprocessing contract for inference.
-
-## 05 — Product UI
-
-### Prediction Studio
-
-- Full raw applicant input contract
-- Numeric controls bounded by ranges derived from the reference CSV
-- Real XGBoost inference
-- Approval probability
-- Decision signals
-- Benchmark context
-- Session prediction history
-
-### Batch Lab
+# 03 · ML pipeline
 
 ```text
-Download template
-      ↓
-Fill applicant rows
-      ↓
-Upload CSV
-      ↓
-Schema validation
-      ↓
-Batch XGBoost inference
-      ↓
-Inspect results
-      ↓
-Download scored CSV
+Raw data
+   │
+   ├── remove loan_id
+   │
+   ├── IQR clipping on selected numeric variables
+   │
+   ├── age / employment sanity filters
+   │
+   ├── binary + ordinal encoding
+   │
+   ├── one-hot encoding of nominal categories
+   │
+   ├── 80/20 train-test split (random_state=42)
+   │
+   ├── RobustScaler fitted on training data
+   │
+   ├── SMOTETomek on scaled training data
+   │
+   └── model benchmarking
+   │
+   ▼
+XGBoost selected from the benchmark
 ```
 
-If `loan_status` exists in the upload, the app also reports correctness and uploaded-label accuracy.
+### Why the pipeline matters
 
-### Project Presentation
+The important engineering step is not simply training XGBoost. The same feature contract and transformations are reused during inference so that a prediction in the UI follows the project's trained representation rather than a separate, hand-written preprocessing path.
 
-The app contains a **16-slide technical presentation** covering:
+---
 
-1. Project opening and team
-2. Problem framing
-3. Dataset
-4. Data quality
-5. Preprocessing
-6. Class imbalance
-7. Model benchmark
-8. XGBoost selection
-9. Generalization / overfitting awareness
-10. Product architecture
-11. Prediction Studio
-12. Batch Lab
-13. Model Insights
-14. Limitations
-15. Production roadmap
-16. Team / closing
+# 04 · Model benchmark
 
-### Model Insights
+| Model | Accuracy | Class-1 Precision | Class-1 Recall | Class-1 F1 |
+|---|---:|---:|---:|---:|
+| Logistic Regression | 86.55% | 0.64 | **0.92** | 0.75 |
+| KNN | 86.29% | 0.64 | 0.88 | 0.74 |
+| Decision Tree | 89.28% | 0.73 | 0.82 | 0.77 |
+| Random Forest | 89.48% | 0.71 | 0.88 | 0.79 |
+| SVM | 88.02% | 0.67 | **0.92** | 0.77 |
+| **XGBoost** | **92.87%** | **0.87** | 0.80 | **0.83** |
 
-- Model benchmark chart
-- Full comparison table
-- XGBoost feature importance
-- Confusion matrix
-- Precision/recall trade-off
-- Generalization discussion
+### Selection logic
 
-### Team & About
+XGBoost is selected for this project because it leads the benchmark on **test accuracy, class-1 precision, and class-1 F1**.
 
-The app includes the four team members and an official NTI branding reference.
+However, it does **not** dominate every metric: Logistic Regression and SVM reach higher class-1 recall. That trade-off is intentionally preserved in the documentation and UI rather than hidden.
 
-## 06 — Repository structure
+---
+
+# 05 · What happens to class imbalance?
+
+Before resampling, the training data contained:
+
+```text
+Class 0  ████████████████████████████  27,991
+Class 1  ████████                       8,001
+```
+
+After SMOTETomek:
+
+```text
+Class 0  ████████████████████████████  27,887
+Class 1  ████████████████████████████  27,887
+```
+
+The goal is to make the learner see a more balanced training distribution. Evaluation remains on the held-out test set.
+
+---
+
+# 06 · Model behavior, not just accuracy
+
+### XGBoost confusion matrix
+
+```text
+                    Predicted
+                 0           1
+Actual  0      6762        237
+        1       405       1594
+```
+
+For class 1, the benchmark reports:
+
+- **Precision:** 0.87
+- **Recall:** 0.80
+- **F1:** 0.83
+
+This means the selected model is strong at avoiding false positive class-1 predictions relative to the other benchmarked models, while still missing some true class-1 cases. The right operating point depends on the business cost of false positives versus false negatives.
+
+---
+
+# 07 · Generalization & overfitting
+
+The benchmark was not interpreted from training performance alone.
+
+- Decision Tree: **100% training accuracy** vs **89.28% test accuracy** → clear overfitting signal.
+- XGBoost: **97.68% training accuracy** vs **92.87% test accuracy** → a train/test gap exists, but the held-out result remains the project's strongest benchmark result.
+
+The README therefore avoids calling the model “perfect” or “production ready.”
+
+---
+
+# 08 · Feature representation
+
+The project encodes:
+
+- gender as binary;
+- previous default history as binary;
+- education as an ordinal representation;
+- home ownership and loan intent using one-hot encoding.
+
+> **Technical note:** ordinal encoding of education introduces an ordering assumption. A future experiment can compare it against one-hot encoding to test whether that assumption affects generalization.
+
+Also, a near-zero Pearson correlation does **not** automatically mean a feature is useless: correlation captures a particular form of linear association and does not replace model-based analysis.
+
+---
+
+# 09 · Application architecture
+
+```text
+┌──────────────────────────────────────────────────────┐
+│                 Streamlit Application                │
+│                                                      │
+│  Prediction Studio │ Batch Lab │ Insights │ Deck    │
+└──────────────────────────────┬───────────────────────┘
+                               │
+                               ▼
+┌──────────────────────────────────────────────────────┐
+│                    src/model.py                      │
+│                                                      │
+│ train_model()  →  LoanModelBundle                   │
+│ predict_one()  →  single applicant inference        │
+│ predict_batch()→  CSV / dataframe inference         │
+└──────────────────────────────┬───────────────────────┘
+                               │
+                               ▼
+┌──────────────────────────────────────────────────────┐
+│ Data + preprocessing + scaler + SMOTETomek + XGBoost│
+└──────────────────────────────────────────────────────┘
+```
+
+### Design principle
+
+**Notebook = research.**  
+**`src/` = reusable ML logic.**  
+**`app.py` = product/presentation layer.**  
+**`tests/` = quality contract.**  
+**`docs/` = engineering and model documentation.**
+
+---
+
+# 10 · Repository map
 
 ```text
 loan-prediction-nti/
-├── .github/workflows/ci.yml
-├── .streamlit/config.toml
-├── assets/README.md
+│
+├── .github/
+│   └── workflows/
+│       └── ci.yml                 # automated checks
+│
+├── .streamlit/
+│   └── config.toml                # application theme/config
+│
 ├── docs/
-│   ├── architecture.md
-│   └── model-card.md
+│   ├── architecture.md            # system architecture
+│   ├── model-card.md              # model documentation
+│   └── quickstart.md              # deployment/local quickstart
+│
 ├── src/
 │   ├── __init__.py
-│   └── model.py
+│   └── model.py                   # training + inference core
+│
 ├── tests/
-│   └── test_model.py
-├── app.py
-├── loan.ipynb
-├── loan_data.csv
+│   └── test_model.py              # ML contract tests
+│
+├── app.py                         # interactive product UI
+├── loan.ipynb                     # original research notebook
+├── loan_data.csv                  # project dataset
 ├── requirements.txt
+├── CONTRIBUTING.md
 ├── .gitignore
 └── README.md
 ```
 
-## 07 — Engineering design
+---
+
+# 11 · Interactive features
+
+### Prediction Studio
+
+Enter the full applicant input contract. Numeric fields expose dataset-derived bounds, then the application sends the row through the same reusable preprocessing/model layer.
+
+### Batch Lab
 
 ```text
-Notebook       = research / experimentation
-src/           = reusable ML logic
-app.py         = product + presentation layer
-tests/         = quality checks
-.github/       = CI automation
-docs/          = architecture + model governance
+CSV template
+     ↓
+Upload
+     ↓
+Schema validation
+     ↓
+Batch inference
+     ↓
+Predictions + probabilities
+     ↓
+Optional labelled-data evaluation
+     ↓
+Download scored CSV
 ```
 
-`src/model.py` exposes a `LoanModelBundle` containing the estimator, scaler, feature schema and clipping bounds. `predict_one()` handles single-row inference and `predict_batch()` handles CSV-style batch inference using the same transformation contract.
+### Project Presentation
 
-## 08 — Run locally
+The application contains an interactive technical deck with fullscreen presentation mode, slide navigation, keyboard controls, and a narrative that follows the actual project workflow.
 
-```bash
+### Model Insights
+
+The application surfaces:
+
+- benchmark metrics;
+- confusion matrix;
+- XGBoost feature importance;
+- class-1 precision/recall trade-off;
+- generalization discussion.
+
+---
+
+# 12 · Run it locally
+
+### Windows — recommended
+
+```powershell
 git clone https://github.com/engyusufayman06/loan-prediction-nti.git
 cd loan-prediction-nti
-python -m venv .venv
-.venv\\Scripts\\activate
-pip install -r requirements.txt
-streamlit run app.py
+py -m venv .venv
+.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+python -m streamlit run app.py
 ```
 
-Then open the local Streamlit URL, normally `http://localhost:8501`.
+If activation is blocked:
 
-## 09 — Quality
+```powershell
+.venv\Scripts\python.exe -m pip install -r requirements.txt
+.venv\Scripts\python.exe -m streamlit run app.py
+```
 
-The repository includes reusable inference functions, unit tests, GitHub Actions CI, Streamlit theme configuration, architecture documentation and a model card.
+Run tests:
 
-## 10 — Limitations & responsible use
+```bash
+python -m pytest -q
+```
 
-This is an **educational / portfolio ML demonstration**, not a production credit-underwriting system.
+More details are available in [`docs/quickstart.md`](docs/quickstart.md).
 
-Known limitations:
+---
 
-- The dataset may not represent a real lender's current population.
-- Correlation is not a complete measure of feature usefulness.
-- Class balancing changes the training distribution.
-- The benchmark has not been audited for fairness, calibration or dataset shift.
-- No real-time production data integration is included.
-- Model probabilities are not guaranteed real-world approval odds.
+# 13 · Deploy
 
-**Never use this model as the sole basis for a real financial decision.**
+The repository is structured for **Streamlit Community Cloud**.
 
-## 11 — Production roadmap
+Use:
 
 ```text
-Current portfolio system
-        ↓
-Versioned model artifact
-        ↓
-FastAPI inference service
-        ↓
-SHAP local explanations
-        ↓
-Probability calibration
-        ↓
-Fairness / subgroup evaluation
-        ↓
-Docker + CI/CD
-        ↓
-MLflow experiment tracking
-        ↓
-Monitoring + drift detection
+Repository: engyusufayman06/loan-prediction-nti
+Branch:     main
+Main file:  app.py
 ```
 
-## 12 — Team
+The application reads `loan_data.csv` from the repository root and caches the trained model during normal Streamlit interaction.
 
-**NTI Machine Learning Track**
+---
 
-1. **Yusuf Ayman Tolba**
-2. **Mohamed Reda Hussein**
-3. **Abdelrahman Mohamed Ahmed**
-4. **Abdelmoniem Ibrahim Abdelmoniem**
+# 14 · Engineering quality
 
-## 13 — Official NTI
+This project goes beyond a notebook by including:
 
-Official institute website: https://www.nti.sci.eg/
+- reusable model/inference functions;
+- a typed `LoanModelBundle` abstraction;
+- single-row and batch inference paths;
+- input/schema validation;
+- unit tests;
+- GitHub Actions CI;
+- dedicated architecture documentation;
+- a model card;
+- deployment quickstart;
+- explicit limitations and responsible-use guidance.
 
-## License
+---
 
-Educational NTI project. Add an appropriate license before redistributing the dataset or code outside the course context.
+# 15 · Limitations & responsible use
+
+This system is an **educational / portfolio ML demonstration**.
+
+It has not been validated as a real lender's underwriting model and should not be used as the sole basis for a real financial decision.
+
+Known limitations include:
+
+- the dataset may not represent a real lender's current population;
+- no fairness audit or subgroup performance analysis has been completed;
+- probability calibration has not been established for real-world approval odds;
+- dataset shift and production drift are not monitored;
+- the benchmark does not establish causal relationships;
+- class balancing changes the training distribution;
+- the current preprocessing implementation preserves the notebook's IQR-bound workflow and should be hardened further for strict production validation.
+
+---
+
+# 16 · Production roadmap
+
+```text
+CURRENT
+  │
+  ├── Interactive Streamlit application
+  ├── Reusable ML core
+  ├── Batch inference
+  └── Automated tests / CI
+  │
+  ▼
+NEXT
+  │
+  ├── Versioned model artifact
+  ├── FastAPI inference service
+  ├── SHAP local explanations
+  ├── Probability calibration
+  ├── Fairness / subgroup evaluation
+  └── Dockerized deployment
+  │
+  ▼
+PRODUCTION MATURITY
+  │
+  ├── MLflow experiment tracking
+  ├── Model registry
+  ├── Data / concept drift monitoring
+  ├── Observability + alerting
+  └── Reproducible CI/CD
+```
+
+---
+
+# 17 · Team
+
+### NTI Machine Learning Track
+
+| # | Team member |
+|---:|---|
+| 01 | **Yusuf Ayman Tolba** |
+| 02 | **Mohamed Reda Hussein** |
+| 03 | **Abdelrahman Mohamed Ahmed** |
+| 04 | **Abdelmoniem Ibrahim Abdelmoniem** |
+
+---
+
+# 18 · NTI
+
+This project was developed in the context of the **National Telecommunication Institute (NTI) Machine Learning Track**.
+
+**Official NTI:** https://www.nti.sci.eg/
+
+---
+
+<div align="center">
+
+### Built to demonstrate the full ML journey — not just the final score.
+
+**Research → Engineering → Evaluation → Product → Deployment**
+
+</div>
