@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#02050a">
+  <meta name="description" content="Loan Intelligence — interactive NTI Machine Learning project website.">
+  <title>Loan Intelligence — Interactive ML System</title>
+  <link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+  <div class="noise"></div>
+  <div class="orb orb-a"></div><div class="orb orb-b"></div>
+
+  <header class="topbar">
+    <a class="brand" href="#top" aria-label="Loan Intelligence home">
+      <span class="brand-mark">◈</span><span>LOAN <b>INTELLIGENCE</b></span>
+    </a>
+    <nav class="nav" aria-label="Primary navigation">
+      <a href="#overview">Overview</a><a href="#system">System</a><a href="#evidence">Evidence</a><a href="#product">Product</a>
+    </nav>
+    <div class="top-actions">
+      <button class="ghost" id="presentationBtn">⌁ Presentation</button>
+      <button class="primary" id="themeBtn">◐ Focus</button>
+    </div>
+  </header>
+
+  <main id="top">
+    <section class="hero" id="overview">
+      <div class="hero-grid"></div><div class="hero-ring"></div>
+      <div class="hero-copy">
+        <div class="eyebrow"><span class="live"></span> NTI MACHINE LEARNING · END-TO-END CLASSIFICATION</div>
+        <h1>Loan<br><span>Intelligence.</span></h1>
+        <p class="hero-lead">A product-style machine learning system that turns applicant data into a reproducible loan-status classification workflow — from EDA and preprocessing to benchmarking, XGBoost inference and deployment.</p>
+        <div class="hero-actions"><button class="primary" id="exploreBtn">Explore system <span>↓</span></button><button class="ghost" id="deckBtn">Open interactive deck</button></div>
+        <div class="hero-tags"><span>SUPERVISED LEARNING</span><span>BINARY CLASSIFICATION</span><span>XGBOOST</span><span>RESPONSIBLE AI</span></div>
+      </div>
+      <div class="hero-visual" aria-hidden="true">
+        <div class="brain-core"><i></i><i></i><i></i><i></i><i></i><i></i><span>AI</span></div>
+        <div class="orbit o1"></div><div class="orbit o2"></div><div class="orbit o3"></div>
+        <div class="data-node n1">INPUT</div><div class="data-node n2">MODEL</div><div class="data-node n3">PREDICT</div>
+      </div>
+    </section>
+
+    <section class="metrics-strip">
+      <div><strong>44,990</strong><span>rows after preprocessing</span></div>
+      <div><strong>20</strong><span>encoded features</span></div>
+      <div><strong>6</strong><span>models benchmarked</span></div>
+      <div class="accent"><strong>92.87%</strong><span>best held-out accuracy</span></div>
+      <div><strong>0.83</strong><span>class-1 F1 · XGBoost</span></div>
+    </section>
+
+    <section class="section" id="system">
+      <div class="section-head"><div><span class="eyebrow">01 — SYSTEM MAP</span><h2>From raw data to a <span>decision surface.</span></h2></div><p>Click any module to expand the engineering story.</p></div>
+      <div class="flow">
+        <div class="flow-step"><b>01</b><strong>Raw Data</strong><small>loan_data.csv</small></div><em>→</em>
+        <div class="flow-step"><b>02</b><strong>EDA</strong><small>shape · quality · patterns</small></div><em>→</em>
+        <div class="flow-step"><b>03</b><strong>Preprocess</strong><small>clean · encode · scale</small></div><em>→</em>
+        <div class="flow-step"><b>04</b><strong>Balance</strong><small>SMOTETomek</small></div><em>→</em>
+        <div class="flow-step"><b>05</b><strong>Benchmark</strong><small>six classifiers</small></div><em>→</em>
+        <div class="flow-step"><b>06</b><strong>XGBoost</strong><small>selected model</small></div><em>→</em>
+        <div class="flow-step"><b>07</b><strong>Product</strong><small>studio · batch · insights</small></div>
+      </div>
+    </section>
+
+    <section class="section evidence" id="evidence">
+      <div class="section-head"><div><span class="eyebrow">02 — PROJECT DECK</span><h2>The reference image, rebuilt as an <span>interactive website.</span></h2></div><button class="ghost" id="expandAll">Expand all</button></div>
+      <div class="deck-grid" id="deckGrid"></div>
+    </section>
+
+    <section class="section product-section" id="product">
+      <div class="section-head"><div><span class="eyebrow">03 — PRODUCT EXPERIENCE</span><h2>Not a notebook. A <span>usable ML surface.</span></h2></div></div>
+      <div class="product-grid">
+        <article class="product-card featured"><div class="product-icon">◎</div><span class="eyebrow">PREDICTION STUDIO</span><h3>Applicant → model → decision</h3><p>Structured input, probability output and an explanation layer. The production implementation remains connected to the reusable Python model core.</p><button class="text-btn" data-open="12">Explore interaction →</button></article>
+        <article class="product-card"><div class="product-icon">▦</div><span class="eyebrow">BATCH LAB</span><h3>CSV scoring at scale</h3><p>Validate the expected schema, run the same inference contract over multiple applicants and export results.</p><button class="text-btn" data-open="13">View workflow →</button></article>
+        <article class="product-card"><div class="product-icon">◒</div><span class="eyebrow">MODEL INSIGHTS</span><h3>Evidence, not just accuracy</h3><p>Compare models, inspect class trade-offs and read the confusion matrix before trusting a headline metric.</p><button class="text-btn" data-open="9">See evidence →</button></article>
+      </div>
+    </section>
+
+    <section class="section final-section">
+      <div class="final-card"><div><span class="eyebrow">LOAN INTELLIGENCE · NTI ML</span><h2>Research → Engineering → <span>Product.</span></h2><p>Clear answers. Real evidence. Honest limitations.</p></div><div class="final-orbit">AI</div></div>
+      <div class="site-footer"><span>Built as an interactive technical showcase</span><span>YUSUF AYMAN · LOAN INTELLIGENCE</span><span>© <span id="year"></span></span></div>
+    </section>
+  </main>
+
+  <div class="modal" id="modal" aria-hidden="true"><div class="modal-backdrop" data-close></div><article class="modal-card"><button class="modal-close" data-close aria-label="Close">×</button><div id="modalContent"></div></article></div>
+  <div class="toast" id="toast"></div>
+  <script src="assets/site.js"></script>
+</body>
+</html>
