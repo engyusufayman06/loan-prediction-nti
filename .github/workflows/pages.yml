@@ -25,10 +25,16 @@ jobs:
         uses: actions/checkout@v4
       - name: Configure Pages
         uses: actions/configure-pages@v5
-      - name: Upload site
+      - name: Prepare website artifact
+        run: |
+          mkdir -p _site/assets
+          cp index.html _site/index.html
+          cp assets/site.css _site/assets/site.css
+          cp assets/site.js _site/assets/site.js
+      - name: Upload website
         uses: actions/upload-pages-artifact@v3
         with:
-          path: .
+          path: _site
       - name: Deploy
         id: deployment
         uses: actions/deploy-pages@v4
