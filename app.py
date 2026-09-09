@@ -1,8 +1,10 @@
 from pathlib import Path
-from io import BytesIO
+import html
+import json
 
 import pandas as pd
 import streamlit as st
+import streamlit.components.v1 as components
 
 from src.model import MODEL_INPUT_COLUMNS, predict_batch, predict_one, train_model
 
@@ -17,350 +19,197 @@ TEAM = [
     "Abdelmoniem Ibrahim Abdelmoniem",
 ]
 
-st.set_page_config(
-    page_title="Loan Intelligence | NTI ML",
-    page_icon="◈",
-    layout="wide",
-    initial_sidebar_state="expanded",
-)
+st.set_page_config(page_title="Loan Intelligence | NTI ML", page_icon="◈", layout="wide", initial_sidebar_state="expanded")
 
-st.markdown(
-    """
+st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap');
-:root{--bg:#04070d;--panel:#080e17;--panel2:#0d1622;--line:#1a2a3d;--text:#f5f7fb;--muted:#8796a9;--cyan:#22d3ee;--lime:#a3e635;--purple:#a78bfa;--red:#fb7185;--amber:#f59e0b}
+:root{--bg:#03060b;--panel:#080e17;--line:#1a2b3f;--text:#f7fafc;--muted:#8796a9;--cyan:#22d3ee;--lime:#a3e635;--purple:#a78bfa;--red:#fb7185;--amber:#fbbf24}
 html,body,[class*="css"]{font-family:'Manrope',sans-serif}.stApp{background:var(--bg);color:var(--text)}
-[data-testid="stHeader"]{background:rgba(4,7,13,.9)}[data-testid="stSidebar"]{background:#060b12;border-right:1px solid var(--line)}
-.block-container{max-width:1500px;padding:1.2rem 2rem 4rem}#MainMenu,footer{visibility:hidden}
-.mono{font-family:'DM Mono',monospace}.eyebrow{color:var(--cyan);font-size:.64rem;font-weight:800;letter-spacing:.2em;text-transform:uppercase}
-.brand{padding:.2rem 0 1rem}.brand-row{display:flex;align-items:center;gap:.7rem}.brand-logo{width:40px;height:40px;border-radius:10px;background:#fff;padding:5px;object-fit:contain}.brand-mark{color:var(--cyan);font-weight:800;font-size:.75rem}.brand-title{font-size:1rem;font-weight:800}.brand-sub{font-size:.6rem;color:var(--muted);margin-top:.15rem}
-.nav-label{font-size:.59rem;color:#64748b;text-transform:uppercase;letter-spacing:.18em;font-weight:800;margin:1rem 0 .45rem}.team-mini{font-size:.61rem;color:#9aa8b9;line-height:1.7;border-top:1px solid var(--line);padding-top:.75rem}.team-mini strong{color:#e2e8f0}
-.hero{position:relative;overflow:hidden;padding:2.7rem;border:1px solid var(--line);border-radius:28px;background:radial-gradient(circle at 92% 8%,rgba(34,211,238,.18),transparent 26%),radial-gradient(circle at 75% 110%,rgba(167,139,250,.14),transparent 34%),linear-gradient(135deg,#08111d,#07101a 60%,#0d1020);margin-bottom:1.25rem}.hero:after{content:'';position:absolute;right:-90px;top:-150px;width:390px;height:390px;border:1px solid rgba(34,211,238,.13);border-radius:50%;box-shadow:0 0 0 35px rgba(34,211,238,.02),0 0 0 75px rgba(34,211,238,.012)}
-.hero h1{margin:.4rem 0 0;font-size:clamp(2.8rem,6vw,5.7rem);line-height:.88;letter-spacing:-.075em;font-weight:800}.hero h1 span{color:var(--cyan)}.hero p{color:#a8b5c5;max-width:900px;font-size:.88rem;line-height:1.75;margin:1rem 0 0}.hero-meta{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:1.35rem}.pill{border:1px solid var(--line);background:rgba(255,255,255,.025);padding:.42rem .68rem;border-radius:999px;color:#abb8c7;font-size:.62rem}.pill strong{color:#fff}
-.page-title{font-size:2.35rem;font-weight:800;letter-spacing:-.065em;margin:.1rem 0 .2rem}.page-sub{color:var(--muted);font-size:.78rem;margin-bottom:1.2rem}.section-title{margin:1rem 0 .6rem;font-size:.62rem;text-transform:uppercase;letter-spacing:.18em;color:#8fa0b5;font-weight:800}
-.card{border:1px solid var(--line);background:linear-gradient(145deg,#09111b,#070d16);border-radius:18px;padding:1.1rem;height:100%}.card-k{color:#718198;font-size:.58rem;text-transform:uppercase;letter-spacing:.13em;font-weight:800}.card-v{font-family:'DM Mono',monospace;font-size:1.55rem;margin-top:.3rem}.card-note{color:var(--muted);font-size:.64rem;margin-top:.3rem;line-height:1.5}
-.step{display:flex;gap:.8rem;padding:.8rem 0;border-bottom:1px solid #142235}.step:last-child{border-bottom:0}.step-no{font-family:'DM Mono',monospace;color:var(--cyan);font-size:.65rem;border:1px solid #244052;border-radius:8px;padding:.3rem .42rem}.step h4{margin:0;font-size:.76rem}.step p{margin:.15rem 0 0;color:var(--muted);font-size:.65rem;line-height:1.5}
-label,.stNumberInput label,.stSelectbox label{color:#b7c1ce!important;font-size:.68rem!important;font-weight:600!important}input,[data-baseweb="select"]>div{background:#070d16!important;border-color:#1a2a3d!important;color:#f5f7fb!important;border-radius:10px!important}.stButton>button{border:1px solid rgba(34,211,238,.38);background:linear-gradient(135deg,#0c202a,#09151e);color:#e6fbff;border-radius:11px;min-height:43px;font-weight:800}.stButton>button:hover{border-color:var(--cyan);color:#fff}.stDownloadButton>button{border-radius:11px}
-.range-note{font-size:.57rem;color:#66768b;margin-top:-.35rem;margin-bottom:.55rem}.decision{min-height:290px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;border:1px solid var(--line);border-radius:20px;background:radial-gradient(circle at 50% 0%,rgba(34,211,238,.1),transparent 48%),var(--panel);padding:1.5rem}.decision .status{font-size:.59rem;text-transform:uppercase;letter-spacing:.16em;color:var(--muted);font-weight:800}.decision .label{margin-top:.45rem;font-size:2.65rem;line-height:1;font-weight:800;letter-spacing:-.06em}.approved{color:var(--lime)}.rejected{color:var(--red)}.prob{font-family:'DM Mono',monospace;margin-top:.8rem;font-size:1.05rem}.confidence-bar{width:82%;height:7px;background:#172232;border-radius:99px;overflow:hidden;margin-top:1rem}.confidence-fill{height:100%;background:linear-gradient(90deg,var(--cyan),var(--lime));border-radius:99px}.decision-note{color:var(--muted);font-size:.61rem;margin-top:.7rem}
-.metric-row{display:grid;grid-template-columns:repeat(3,1fr);gap:.6rem;margin-top:.7rem}.metric{border:1px solid var(--line);background:#090f19;border-radius:13px;padding:.8rem}.metric .k{color:var(--muted);font-size:.56rem;text-transform:uppercase;letter-spacing:.1em}.metric .v{font-family:'DM Mono',monospace;font-size:1rem;margin-top:.2rem}
-.risk{padding:.65rem .75rem;border-left:2px solid var(--lime);background:rgba(163,230,53,.035);margin:.35rem 0;border-radius:0 9px 9px 0;color:#aeb9c8;font-size:.66rem;line-height:1.45}.risk.warn{border-left-color:var(--amber)}
-.deck{border:1px solid var(--line);border-radius:26px;background:radial-gradient(circle at 90% 5%,rgba(34,211,238,.1),transparent 25%),linear-gradient(145deg,#0a121d,#070d16);min-height:510px;padding:2.4rem;position:relative;overflow:hidden}.deck:before{content:'LOAN\AINTELLIGENCE';white-space:pre;position:absolute;right:2rem;top:1.1rem;color:rgba(255,255,255,.035);font-size:4.5rem;font-weight:800;line-height:.8;letter-spacing:-.08em;text-align:right}.slide-count{color:var(--cyan);font-family:'DM Mono',monospace;font-size:.64rem}.slide-title{font-size:2.55rem;line-height:1.03;letter-spacing:-.065em;font-weight:800;margin:.6rem 0 .9rem;max-width:950px}.slide-copy{color:#a9b5c4;max-width:900px;line-height:1.8;font-size:.82rem}.slide-accent{color:var(--cyan)}.big-stat{font-family:'DM Mono',monospace;font-size:4rem;letter-spacing:-.08em;color:var(--cyan);margin:.8rem 0}.quote{border-left:2px solid var(--cyan);padding-left:1rem;color:#cbd5e1;font-size:.86rem;line-height:1.7;margin-top:1.2rem;max-width:900px}.deck-footer{position:absolute;left:2.4rem;right:2.4rem;bottom:1.2rem;color:#536176;font-size:.56rem;letter-spacing:.09em;text-transform:uppercase}
-.team-card{border:1px solid var(--line);border-radius:16px;background:#090f18;padding:1rem}.team-number{font-family:'DM Mono',monospace;color:var(--cyan);font-size:.62rem}.team-name{font-size:.8rem;font-weight:700;margin-top:.35rem}.team-role{color:var(--muted);font-size:.6rem;margin-top:.25rem}.footer-note{text-align:center;color:#536176;font-size:.58rem;margin-top:2rem;letter-spacing:.06em}
+[data-testid="stHeader"]{background:rgba(3,6,11,.9)}[data-testid="stSidebar"]{background:#050a11;border-right:1px solid var(--line)}
+.block-container{max-width:1540px;padding:1rem 2rem 4rem}#MainMenu,footer{visibility:hidden}
+.mono{font-family:'DM Mono',monospace}.eyebrow{color:var(--cyan);font-size:.62rem;font-weight:800;letter-spacing:.2em;text-transform:uppercase}.muted{color:var(--muted)}
+.brand{padding:.1rem 0 1rem}.brand-row{display:flex;align-items:center;gap:.7rem}.brand-logo{width:42px;height:42px;border-radius:12px;background:white;padding:5px;object-fit:contain}.brand-mark{color:var(--cyan);font-weight:800;font-size:.72rem}.brand-title{font-size:1rem;font-weight:800}.brand-sub{font-size:.58rem;color:var(--muted);margin-top:.12rem}.nav-label{font-size:.58rem;color:#64748b;text-transform:uppercase;letter-spacing:.18em;font-weight:800;margin:1rem 0 .45rem}.team-mini{font-size:.59rem;color:#a3afbd;line-height:1.75;border-top:1px solid var(--line);padding-top:.75rem}.team-mini strong{color:#e5edf5}
+.hero{position:relative;overflow:hidden;padding:2.9rem;border:1px solid var(--line);border-radius:30px;background:radial-gradient(circle at 91% 5%,rgba(34,211,238,.2),transparent 25%),radial-gradient(circle at 75% 115%,rgba(167,139,250,.15),transparent 32%),linear-gradient(135deg,#07111c,#06101a 56%,#0c1020);margin-bottom:1.25rem;box-shadow:0 25px 80px rgba(0,0,0,.25)}
+.hero:before{content:'';position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.018) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.018) 1px,transparent 1px);background-size:34px 34px;mask-image:linear-gradient(to right,transparent 25%,black 70%);pointer-events:none}.hero:after{content:'';position:absolute;right:-100px;top:-160px;width:420px;height:420px;border:1px solid rgba(34,211,238,.14);border-radius:50%;box-shadow:0 0 0 35px rgba(34,211,238,.025),0 0 0 75px rgba(34,211,238,.012)}
+.hero h1{position:relative;margin:.4rem 0 0;font-size:clamp(3rem,6vw,6rem);line-height:.86;letter-spacing:-.08em;font-weight:800}.hero h1 span{color:var(--cyan)}.hero p{position:relative;color:#aab8c8;max-width:900px;font-size:.9rem;line-height:1.8;margin:1rem 0 0}.hero-meta{position:relative;display:flex;gap:.5rem;flex-wrap:wrap;margin-top:1.4rem}.pill{border:1px solid var(--line);background:rgba(255,255,255,.035);padding:.45rem .72rem;border-radius:999px;color:#abb8c7;font-size:.61rem}.pill strong{color:#fff}
+.page-title{font-size:2.5rem;font-weight:800;letter-spacing:-.07em;margin:.05rem 0 .2rem}.page-title span{color:var(--cyan)}.page-sub{color:var(--muted);font-size:.78rem;margin-bottom:1.25rem}.section-title{margin:1rem 0 .6rem;font-size:.61rem;text-transform:uppercase;letter-spacing:.18em;color:#8fa0b5;font-weight:800}
+.card{border:1px solid var(--line);background:linear-gradient(145deg,#09111b,#070c14);border-radius:18px;padding:1.1rem;height:100%;box-shadow:0 12px 35px rgba(0,0,0,.14)}.card-k{color:#718198;font-size:.56rem;text-transform:uppercase;letter-spacing:.13em;font-weight:800}.card-v{font-family:'DM Mono',monospace;font-size:1.55rem;margin-top:.3rem}.card-note{color:var(--muted);font-size:.63rem;margin-top:.3rem;line-height:1.5}
+label,.stNumberInput label,.stSelectbox label,.stFileUploader label{color:#b7c1ce!important;font-size:.67rem!important;font-weight:600!important}input,[data-baseweb="select"]>div{background:#070d16!important;border-color:#1a2a3d!important;color:#f5f7fb!important;border-radius:10px!important}.stButton>button{border:1px solid rgba(34,211,238,.38);background:linear-gradient(135deg,#0c202a,#09151e);color:#e6fbff;border-radius:11px;min-height:43px;font-weight:800;transition:.2s}.stButton>button:hover{border-color:var(--cyan);color:#fff;transform:translateY(-1px);box-shadow:0 8px 25px rgba(34,211,238,.12)}.stDownloadButton>button{border-radius:11px}
+.range-note{font-size:.56rem;color:#66768b;margin-top:-.35rem;margin-bottom:.55rem}.decision{min-height:305px;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;border:1px solid var(--line);border-radius:22px;background:radial-gradient(circle at 50% 0%,rgba(34,211,238,.12),transparent 48%),var(--panel);padding:1.5rem;box-shadow:0 20px 50px rgba(0,0,0,.2)}.decision .status{font-size:.58rem;text-transform:uppercase;letter-spacing:.16em;color:var(--muted);font-weight:800}.decision .label{margin-top:.45rem;font-size:2.8rem;line-height:1;font-weight:800;letter-spacing:-.06em}.approved{color:var(--lime)}.rejected{color:var(--red)}.prob{font-family:'DM Mono',monospace;margin-top:.8rem;font-size:1.05rem}.confidence-bar{width:82%;height:7px;background:#172232;border-radius:99px;overflow:hidden;margin-top:1rem}.confidence-fill{height:100%;background:linear-gradient(90deg,var(--cyan),var(--lime));border-radius:99px}.decision-note{color:var(--muted);font-size:.61rem;margin-top:.7rem}
+.metric-row{display:grid;grid-template-columns:repeat(3,1fr);gap:.6rem;margin-top:.7rem}.metric{border:1px solid var(--line);background:#090f19;border-radius:13px;padding:.8rem}.metric .k{color:var(--muted);font-size:.55rem;text-transform:uppercase;letter-spacing:.1em}.metric .v{font-family:'DM Mono',monospace;font-size:1rem;margin-top:.2rem}.risk{padding:.65rem .75rem;border-left:2px solid var(--lime);background:rgba(163,230,53,.035);margin:.35rem 0;border-radius:0 9px 9px 0;color:#aeb9c8;font-size:.65rem;line-height:1.45}.risk.warn{border-left-color:var(--amber)}
+.feature-chip{display:inline-block;border:1px solid #1d3348;background:#09121c;border-radius:999px;padding:.35rem .55rem;margin:.18rem;color:#b7c5d5;font-family:'DM Mono',monospace;font-size:.56rem}.feature-chip b{color:var(--cyan)}.insight{border:1px solid var(--line);border-radius:16px;padding:1rem;background:linear-gradient(145deg,#09121c,#070d15);margin-bottom:.7rem}.insight h4{margin:0;font-size:.75rem}.insight p{margin:.3rem 0 0;color:var(--muted);font-size:.65rem;line-height:1.6}.about-hero{border:1px solid var(--line);border-radius:24px;padding:2rem;background:radial-gradient(circle at 90% 10%,rgba(167,139,250,.13),transparent 30%),#080e17}.team-card{border:1px solid var(--line);border-radius:16px;background:#090f18;padding:1rem;height:100%}.team-number{font-family:'DM Mono',monospace;color:var(--cyan);font-size:.62rem}.team-name{font-size:.79rem;font-weight:700;margin-top:.35rem}.team-role{color:var(--muted);font-size:.6rem;margin-top:.25rem}.footer-note{text-align:center;color:#536176;font-size:.56rem;margin-top:2rem;letter-spacing:.06em}
+.present-tip{display:flex;justify-content:space-between;align-items:center;gap:1rem;border:1px solid var(--line);background:#07101a;padding:.65rem .8rem;border-radius:12px;margin-bottom:.65rem;color:#8191a5;font-size:.61rem}.present-tip b{color:#dce8f2}
 </style>
-""",
-    unsafe_allow_html=True,
-)
-
+""", unsafe_allow_html=True)
 
 @st.cache_resource(show_spinner=False)
 def get_model():
     return train_model(DATA_PATH)
 
-
 @st.cache_data(show_spinner=False)
 def get_reference_data():
     return pd.read_csv(DATA_PATH)
-
 
 if not DATA_PATH.exists():
     st.error("loan_data.csv was not found in the project root.")
     st.stop()
 
-with st.spinner("Loading Loan Intelligence model…"):
+with st.spinner("Booting Loan Intelligence…"):
     bundle, metrics = get_model()
 reference = get_reference_data()
 
-BENCHMARK = pd.DataFrame(
-    [
-        ["Logistic Regression", 86.55, 0.64, 0.92, 0.75],
-        ["KNN", 86.29, 0.64, 0.88, 0.74],
-        ["Decision Tree", 89.28, 0.73, 0.82, 0.77],
-        ["Random Forest", 89.48, 0.71, 0.88, 0.79],
-        ["SVM", 88.02, 0.67, 0.92, 0.77],
-        ["XGBoost", 92.87, 0.87, 0.80, 0.83],
-    ],
-    columns=["Model", "Accuracy", "Precision", "Recall", "F1"],
-)
+BENCHMARK = pd.DataFrame([
+    ["Logistic Regression",86.55,64,92,75],["KNN",86.29,64,88,74],["Decision Tree",89.28,73,82,77],
+    ["Random Forest",89.48,71,88,79],["SVM",88.02,67,92,77],["XGBoost",92.87,87,80,83]
+],columns=["Model","Accuracy","Precision","Recall","F1"])
+RANGES={
+    "age":(18,80),"income":(float(reference.person_income.min()),float(reference.person_income.max())),
+    "emp_exp":(0,60),"loan_amount":(float(reference.loan_amnt.min()),float(reference.loan_amnt.max())),
+    "interest":(float(reference.loan_int_rate.min()),float(reference.loan_int_rate.max())),
+    "loan_percent_income":(float(reference.loan_percent_income.min()),min(1.0,float(reference.loan_percent_income.max()))),
+    "credit_history":(float(reference.cb_person_cred_hist_length.min()),float(reference.cb_person_cred_hist_length.max())),
+    "credit_score":(int(reference.credit_score.min()),int(reference.credit_score.max()))}
 
-RANGES = {
-    "age": (int(max(18, reference.person_age.min())), int(min(80, reference.person_age.max()))),
-    "income": (float(reference.person_income.min()), float(reference.person_income.max())),
-    "emp_exp": (int(max(0, reference.person_emp_exp.min())), int(min(60, reference.person_emp_exp.max()))),
-    "loan_amount": (float(reference.loan_amnt.min()), float(reference.loan_amnt.max())),
-    "interest": (float(reference.loan_int_rate.min()), float(reference.loan_int_rate.max())),
-    "loan_percent_income": (float(reference.loan_percent_income.min()), float(min(1, reference.loan_percent_income.max()))),
-    "credit_history": (float(reference.cb_person_cred_hist_length.min()), float(reference.cb_person_cred_hist_length.max())),
-    "credit_score": (int(reference.credit_score.min()), int(reference.credit_score.max())),
-}
+def clamp(v,lo,hi): return max(lo,min(hi,v))
+def card(k,v,note=""): return f'<div class="card"><div class="card-k">{html.escape(str(k))}</div><div class="card-v">{html.escape(str(v))}</div><div class="card-note">{html.escape(str(note))}</div></div>'
 
 
-def clamp_num(value, low, high):
-    return max(low, min(high, value))
-
+def presentation_html():
+    slides=[
+      {"k":"01 / OPENING","title":"Loan <span>Intelligence.</span>","sub":"An end-to-end Machine Learning system for binary loan-status prediction.","body":"NTI Machine Learning track final project connecting data preparation, class-imbalance handling, model benchmarking, XGBoost inference, and an interactive product experience.","stat":"92.87%","label":"held-out test accuracy","chips":["MACHINE LEARNING","BINARY CLASSIFICATION","XGBOOST","NTI"]},
+      {"k":"02 / PROBLEM","title":"Turn applicant signals into a <span>repeatable decision.</span>","sub":"Loan status is framed as a binary classification problem.","body":"The system receives applicant and loan attributes, applies the same preprocessing path used by the project workflow, and returns a predicted class plus probability estimates. The focus is reproducibility: the result should come from a defined pipeline rather than an unexplained score.","quote":"A strong demo is not only a prediction. It is a traceable ML workflow that can be inspected, tested, and defended.","chips":["INPUT → TRANSFORM → PREDICT","REPEATABLE PIPELINE"]},
+      {"k":"03 / DATASET","title":"45K+ rows. <span>13 raw inputs.</span>","sub":"The supplied dataset combines applicant, employment, loan, credit, and target information.","stat":f"{len(reference):,}","label":"source rows","body":"The raw table includes demographic attributes, income and employment experience, home ownership, loan intent, loan amount, interest rate, loan-to-income ratio, credit history, credit score, previous default history, and loan status.","chips":["NUMERIC + CATEGORICAL","13 RAW MODEL INPUTS","LOAN_STATUS TARGET"]},
+      {"k":"04 / DATA QUALITY","title":"Clean the signal. <span>Expose the assumptions.</span>","sub":"EDA inspects structure, duplicates, missingness, distributions, correlations, and categorical counts.","body":"The workflow removes loan_id from modeling, applies IQR-based clipping to selected numeric variables, and keeps the age and employment-experience constraints used in the project. This creates a controlled feature table before encoding and scaling.","chips":["EDA","IQR CLIPPING","BOUNDS","QUALITY CHECKS"]},
+      {"k":"05 / PREPROCESSING","title":"From raw records to <span>model-ready features.</span>","sub":"Categorical information is transformed into numerical representations.","body":"Gender and previous-default history are binary mapped. Education is ordinally encoded from High School through Doctorate. Home ownership and loan intent are one-hot encoded with drop_first=True. RobustScaler then transforms the feature space before model fitting.","chips":["BINARY MAP","ORDINAL MAP","ONE-HOT","ROBUSTSCALER"]},
+      {"k":"06 / IMBALANCE","title":"The training target was <span>imbalanced.</span>","sub":"Class 0 started with substantially more training examples than class 1.","stat":"27,887 × 2","label":"balanced rows after SMOTETomek","body":"SMOTETomek is applied only to the training data after scaling. SMOTE synthesizes minority examples while Tomek links clean borderline pairs. The held-out test set remains untouched for evaluation.","chips":["SMOTE","TOMEK LINKS","TRAINING ONLY"]},
+      {"k":"07 / MODEL ARENA","title":"Six classifiers entered the <span>benchmark.</span>","sub":"Model selection is evidence-driven.","body":"Logistic Regression, KNN, Decision Tree, Random Forest, SVM, and XGBoost were compared on the same held-out test split. The benchmark exposes both overall accuracy and class-1 precision, recall, and F1 so that one metric does not hide the trade-offs.","chips":["LOGISTIC","KNN","TREE","RANDOM FOREST","SVM","XGBOOST"]},
+      {"k":"08 / WINNER","title":"XGBoost led the benchmark at <span>92.87%.</span>","sub":"Strongest overall held-out accuracy, class-1 precision, and class-1 F1 in this benchmark.","stat":"92.87%","label":"XGBoost test accuracy","body":"XGBoost reached 0.87 precision, 0.80 recall, and 0.83 F1 for class 1. Logistic Regression and SVM reached higher class-1 recall at 0.92, so the selection is a trade-off rather than a claim of universal superiority.","chips":["PRECISION 87%","RECALL 80%","F1 83%"]},
+      {"k":"09 / GENERALIZATION","title":"A high training score is not the <span>whole story.</span>","sub":"Held-out performance is the anchor for the product.","stat":"97.68 → 92.87","label":"XGBoost train → test accuracy","body":"The Decision Tree reaches 100% training accuracy but a lower test score, a clear overfitting signal. XGBoost also has a train/test gap, so further validation and tuning would be appropriate before production use.","chips":["HELD-OUT TEST","OVERFITTING AWARENESS"]},
+      {"k":"10 / ARCHITECTURE","title":"The notebook became an <span>interactive product.</span>","sub":"Reusable model logic powers every inference surface.","body":"Reference CSV → preprocessing and encoding → RobustScaler → XGBoost → class + probability. SMOTETomek is part of training only. The Streamlit layer adds single-record prediction, batch scoring, diagnostics, documentation, and this presentation.","chips":["PYTHON","PANDAS","SCIKIT-LEARN","IMBLEARN","XGBOOST","STREAMLIT"]},
+      {"k":"11 / PREDICTION STUDIO","title":"Enter an applicant. <span>See the decision.</span>","sub":"All 13 raw model inputs are exposed with bounded numeric controls.","body":"The Prediction Studio validates numeric ranges, constructs the raw applicant record, applies the trained bundle's feature layout, and displays predicted status, approval probability, rejection probability, and benchmark context.","chips":["13 INPUTS","RANGE-GUARDED","LIVE INFERENCE"]},
+      {"k":"12 / BATCH LAB","title":"One applicant or <span>an entire CSV.</span>","sub":"Batch scoring turns the demo into a reusable inference utility.","body":"Users can download a schema template, upload raw applicant rows, validate required columns, score the file with the XGBoost bundle, inspect approved/rejected counts, and download the scored CSV. If loan_status is supplied, row-level correctness is also calculated.","chips":["UPLOAD","VALIDATE","SCORE","DOWNLOAD"]},
+      {"k":"13 / MODEL INSIGHTS","title":"Don't just show the answer. <span>Show the evidence.</span>","sub":"Diagnostics make the final model choice defendable.","body":"The Model Insights workspace exposes the six-model benchmark, XGBoost feature importance, confusion-matrix values, and the precision/recall trade-off. This keeps the product presentation connected to the actual experiment rather than a decorative dashboard.","chips":["BENCHMARK","FEATURE IMPORTANCE","CONFUSION MATRIX"]},
+      {"k":"14 / LIMITATIONS","title":"Good ML work includes <span>what could be better.</span>","sub":"This is an educational prototype, not a production credit-decision engine.","body":"Results are tied to the supplied dataset and split. The current workflow computes IQR bounds before the split, which can introduce mild leakage. Education is ordinal-encoded, which imposes an ordering assumption. Probability outputs are not presented as calibrated financial risk.","chips":["DATASET-SPECIFIC","CALIBRATION NEEDED","FAIRNESS REVIEW","LEAKAGE HARDENING"]},
+      {"k":"15 / ROADMAP","title":"From student project to <span>ML service.</span>","sub":"The next gains come from stronger validation and engineering.","body":"Next: fit preprocessing statistics strictly inside training folds, tune XGBoost with validation, calibrate probabilities, add cross-validation and threshold analysis, version data and models, monitor drift, and expose the model through a controlled API with audit logging.","chips":["CV","CALIBRATION","MLOPS","MONITORING","API"]},
+      {"k":"16 / CLOSING","title":"Four people. <span>One ML system.</span>","sub":"NTI Machine Learning Track — Loan Status Prediction.","body":"The final experience combines analysis, preprocessing, benchmarking, inference, batch scoring, diagnostics, documentation, and presentation into one coherent project.","chips":TEAM}
+    ]
+    data=json.dumps(slides,ensure_ascii=False).replace("</","<\\/")
+    return f"""<!doctype html><html><head><meta charset='utf-8'><link href='https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap' rel='stylesheet'><style>
+*{{box-sizing:border-box}}html,body{{margin:0;width:100%;height:100%;overflow:hidden;background:#03060b;color:#f7fafc;font-family:Manrope,Arial,sans-serif}}#stage{{width:100%;height:100vh;min-height:650px;position:relative;overflow:hidden;background:radial-gradient(circle at 88% 8%,rgba(34,211,238,.13),transparent 25%),radial-gradient(circle at 72% 110%,rgba(167,139,250,.11),transparent 30%),#03060b}}#grid{{position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);background-size:38px 38px;mask-image:linear-gradient(to bottom,black,transparent)}}#orb{{position:absolute;right:-130px;top:10%;width:460px;height:460px;border:1px solid rgba(34,211,238,.11);border-radius:50%;box-shadow:0 0 0 45px rgba(34,211,238,.018),0 0 0 90px rgba(34,211,238,.01)}}#top{{position:absolute;left:5%;right:5%;top:4%;display:flex;justify-content:space-between;align-items:center;z-index:5}}.brand{{font:500 10px 'DM Mono',monospace;letter-spacing:.16em;color:#7890a8}}.brand b{{color:#22d3ee}}#counter{{font:500 10px 'DM Mono',monospace;color:#6e8196}}#slide{{position:absolute;inset:11% 5% 11%;display:flex;flex-direction:column;justify-content:center;z-index:2;animation:enter .42s ease}}@keyframes enter{{from{{opacity:0;transform:translateY(15px)}}to{{opacity:1;transform:none}}}}.kicker{{font:800 10px 'DM Mono',monospace;letter-spacing:.19em;color:#22d3ee;text-transform:uppercase}}h1{{font-size:clamp(42px,6.1vw,92px);line-height:.91;letter-spacing:-.075em;max-width:1120px;margin:14px 0 16px;font-weight:800}}h1 span{{color:#22d3ee}}.sub{{font-size:clamp(16px,1.6vw,23px);line-height:1.45;color:#d8e1eb;max-width:930px}}.body{{font-size:14px;line-height:1.8;color:#94a5b8;max-width:900px;margin-top:18px}}.stat{{font:500 clamp(54px,8vw,112px) 'DM Mono',monospace;color:#22d3ee;letter-spacing:-.08em;margin-top:20px;line-height:.95}}.statlabel{{font:800 10px 'DM Mono',monospace;color:#61748a;text-transform:uppercase;letter-spacing:.15em;margin-top:8px}}.chips{{display:flex;gap:7px;flex-wrap:wrap;margin-top:24px;max-width:1100px}}.chip{{border:1px solid #203449;background:rgba(255,255,255,.035);border-radius:999px;padding:7px 10px;color:#aebdcc;font:500 9px 'DM Mono',monospace}}.quote{{border-left:2px solid #22d3ee;padding-left:16px;color:#d3dee8;max-width:820px;margin-top:22px;font-size:16px;line-height:1.7}}#bottom{{position:absolute;left:5%;right:5%;bottom:4%;z-index:5;display:flex;align-items:center;gap:10px}}#progress{{height:2px;background:#152233;flex:1;border-radius:10px;overflow:hidden}}#bar{{height:100%;background:linear-gradient(90deg,#22d3ee,#a3e635);width:0;transition:.35s}}button{{border:1px solid #23374b;background:#08111b;color:#c9d7e4;border-radius:9px;padding:8px 12px;font:800 9px 'DM Mono',monospace;cursor:pointer}}button:hover{{border-color:#22d3ee;color:#fff}}#hint{{color:#53667b;font:500 8px 'DM Mono',monospace}}.full{{position:absolute;right:5%;top:10%;z-index:10}}
+</style></head><body><div id='stage'><div id='grid'></div><div id='orb'></div><div id='top'><div class='brand'><b>NTI</b> / MACHINE LEARNING / LOAN INTELLIGENCE</div><div id='counter'>01 / 16</div></div><button class='full' onclick='full()'>⛶ FULLSCREEN</button><div id='slide'></div><div id='bottom'><button onclick='prev()'>← PREV</button><button onclick='next()'>NEXT →</button><div id='progress'><div id='bar'></div></div><div id='hint'>← → · SPACE · F · DOUBLE CLICK</div></div></div><script>const slides={data};let i=0;const root=document.getElementById('slide');function render(){{const s=slides[i];root.style.animation='none';void root.offsetWidth;root.style.animation='enter .42s ease';let h=`<div class='kicker'>${{s.k}}</div><h1>${{s.title}}</h1><div class='sub'>${{s.sub}}</div>`;if(s.stat)h+=`<div class='stat'>${{s.stat}}</div><div class='statlabel'>${{s.label}}</div>`;h+=`<div class='body'>${{s.body}}</div>`;if(s.quote)h+=`<div class='quote'>${{s.quote}}</div>`;h+=`<div class='chips'>${{(s.chips||[]).map(x=>`<div class='chip'>${{x}}</div>`).join('')}}</div>`;root.innerHTML=h;document.getElementById('counter').textContent=String(i+1).padStart(2,'0')+' / '+String(slides.length).padStart(2,'0');document.getElementById('bar').style.width=((i+1)/slides.length*100)+'%'}}function next(){{i=Math.min(slides.length-1,i+1);render()}}function prev(){{i=Math.max(0,i-1);render()}}function full(){{const e=document.getElementById('stage');if(!document.fullscreenElement)e.requestFullscreen?.();else document.exitFullscreen?.()}}document.addEventListener('keydown',e=>{{if(['ArrowRight','PageDown',' '].includes(e.key)){{e.preventDefault();next()}}else if(['ArrowLeft','PageUp'].includes(e.key)){{e.preventDefault();prev()}}else if(e.key.toLowerCase()==='f')full()}});document.getElementById('stage').addEventListener('dblclick',full);render();</script></body></html>"""
 
 with st.sidebar:
-    st.markdown(
-        f'<div class="brand"><div class="brand-row"><img class="brand-logo" src="{NTI_LOGO}" onerror="this.style.display=\'none\'"><div><div class="brand-mark">NTI / ML</div><div class="brand-title">Loan Intelligence</div><div class="brand-sub">End-to-end classification system</div></div></div></div>',
-        unsafe_allow_html=True,
-    )
-    st.markdown('<div class="nav-label">Workspace</div>', unsafe_allow_html=True)
-    page = st.radio(
-        "Navigate",
-        ["Prediction Studio", "Batch Lab", "Project Presentation", "Model Insights", "Team & About"],
-        label_visibility="collapsed",
-    )
-    st.markdown('<div class="nav-label">Live system</div>', unsafe_allow_html=True)
-    st.markdown(
-        f'<div class="risk"><strong>XGBoost</strong><br>{metrics["accuracy"]:.2%} held-out test accuracy</div>'
-        f'<div class="risk"><strong>{len(reference):,} source rows</strong><br>{len(bundle.feature_columns)} encoded model features</div>'
-        f'<div class="risk"><strong>Training balance</strong><br>{metrics["train_rows_after_smotetomek"]:,} rows after SMOTETomek</div>',
-        unsafe_allow_html=True,
-    )
-    st.markdown('<div class="nav-label">Team</div>', unsafe_allow_html=True)
-    st.markdown(
-        '<div class="team-mini">' + "<br>".join(f'<strong>{i + 1}.</strong> {n}' for i, n in enumerate(TEAM)) + "</div>",
-        unsafe_allow_html=True,
-    )
-    st.markdown(
-        f'<div style="margin-top:.8rem;font-size:.6rem"><a href="{NTI_SITE}" target="_blank" style="color:#22d3ee;text-decoration:none">Official NTI website ↗</a></div>',
-        unsafe_allow_html=True,
-    )
+    st.markdown(f'<div class="brand"><div class="brand-row"><img class="brand-logo" src="{NTI_LOGO}"><div><div class="brand-mark">NTI / ML</div><div class="brand-title">Loan Intelligence</div><div class="brand-sub">Interactive classification system</div></div></div></div>',unsafe_allow_html=True)
+    st.markdown('<div class="nav-label">Workspace</div>',unsafe_allow_html=True)
+    page=st.radio("Navigate",["Prediction Studio","Batch Lab","Project Presentation","Model Insights","Team & About"],label_visibility="collapsed")
+    st.markdown('<div class="nav-label">Live system</div>',unsafe_allow_html=True)
+    st.markdown(f'<div class="risk"><strong>XGBoost</strong><br>{metrics["accuracy"]:.2%} held-out test accuracy</div><div class="risk"><strong>{len(reference):,} source rows</strong><br>{len(bundle.feature_columns)} encoded features</div><div class="risk"><strong>SMOTETomek</strong><br>{metrics["train_rows_after_smotetomek"]:,} balanced training rows</div>',unsafe_allow_html=True)
+    st.markdown('<div class="nav-label">Team</div>',unsafe_allow_html=True)
+    st.markdown('<div class="team-mini">'+'<br>'.join(f'<strong>{i+1}.</strong> {html.escape(n)}' for i,n in enumerate(TEAM))+'</div>',unsafe_allow_html=True)
+    st.markdown(f'<div style="margin-top:.8rem;font-size:.58rem"><a href="{NTI_SITE}" target="_blank" style="color:#22d3ee;text-decoration:none">Official NTI website ↗</a></div>',unsafe_allow_html=True)
 
-
-if page == "Prediction Studio":
-    st.markdown(
-        f'<div class="hero"><div class="eyebrow mono">NTI / MACHINE LEARNING TRACK / FINAL PROJECT</div>'
-        f'<h1>Loan <span>Intelligence.</span></h1>'
-        f'<p>A real interactive binary loan-status prediction system using the same preprocessing logic and XGBoost model family benchmarked in the project notebook. Numeric controls are bounded by the supplied dataset.</p>'
-        f'<div class="hero-meta"><div class="pill"><strong>{metrics["accuracy"]:.2%}</strong> test accuracy</div>'
-        f'<div class="pill"><strong>{len(reference):,}</strong> source rows</div>'
-        f'<div class="pill"><strong>{len(bundle.feature_columns)}</strong> encoded features</div>'
-        f'<div class="pill"><strong>6</strong> classifiers benchmarked</div></div></div>',
-        unsafe_allow_html=True,
-    )
-
-    form_col, result_col = st.columns([1.15, 0.85], gap="large")
-    with form_col:
-        st.markdown('<div class="section-title">01 / Applicant profile — all model inputs</div>', unsafe_allow_html=True)
-        with st.container(border=True):
-            c1, c2 = st.columns(2)
-            with c1:
-                age = st.number_input("Age", min_value=RANGES["age"][0], max_value=RANGES["age"][1], value=int(clamp_num(30, *RANGES["age"])), step=1)
-                st.markdown(f'<div class="range-note">Dataset range: {RANGES["age"][0]} → {RANGES["age"][1]}</div>', unsafe_allow_html=True)
-                income = st.number_input("Annual income", min_value=RANGES["income"][0], max_value=RANGES["income"][1], value=clamp_num(60000.0, *RANGES["income"]), step=1000.0)
-                st.markdown(f'<div class="range-note">Dataset range: {RANGES["income"][0]:,.0f} → {RANGES["income"][1]:,.0f}</div>', unsafe_allow_html=True)
-                emp = st.number_input("Employment experience (years)", min_value=RANGES["emp_exp"][0], max_value=RANGES["emp_exp"][1], value=int(clamp_num(5, *RANGES["emp_exp"])), step=1)
-                st.markdown(f'<div class="range-note">Dataset range: {RANGES["emp_exp"][0]} → {RANGES["emp_exp"][1]}</div>', unsafe_allow_html=True)
-                gender = st.selectbox("Gender", ["male", "female"])
-                education = st.selectbox("Education", ["High School", "Associate", "Bachelor", "Master", "Doctorate"], index=2)
-                home = st.selectbox("Home ownership", ["RENT", "OWN", "MORTGAGE", "OTHER"])
-            with c2:
-                loan_amount = st.number_input("Loan amount", min_value=RANGES["loan_amount"][0], max_value=RANGES["loan_amount"][1], value=clamp_num(10000.0, *RANGES["loan_amount"]), step=500.0)
-                st.markdown(f'<div class="range-note">Dataset range: {RANGES["loan_amount"][0]:,.0f} → {RANGES["loan_amount"][1]:,.0f}</div>', unsafe_allow_html=True)
-                interest = st.number_input("Interest rate (%)", min_value=RANGES["interest"][0], max_value=RANGES["interest"][1], value=clamp_num(10.0, *RANGES["interest"]), step=0.1)
-                st.markdown(f'<div class="range-note">Dataset range: {RANGES["interest"][0]:.2f} → {RANGES["interest"][1]:.2f}</div>', unsafe_allow_html=True)
-                loan_pct = st.number_input("Loan percent of income", min_value=RANGES["loan_percent_income"][0], max_value=RANGES["loan_percent_income"][1], value=clamp_num(0.20, *RANGES["loan_percent_income"]), step=0.01, format="%.2f")
-                st.markdown(f'<div class="range-note">Dataset range: {RANGES["loan_percent_income"][0]:.2f} → {RANGES["loan_percent_income"][1]:.2f}</div>', unsafe_allow_html=True)
-                credit_history = st.number_input("Credit history length", min_value=RANGES["credit_history"][0], max_value=RANGES["credit_history"][1], value=clamp_num(4.0, *RANGES["credit_history"]), step=0.5)
-                st.markdown(f'<div class="range-note">Dataset range: {RANGES["credit_history"][0]:.1f} → {RANGES["credit_history"][1]:.1f}</div>', unsafe_allow_html=True)
-                credit_score = st.number_input("Credit score", min_value=RANGES["credit_score"][0], max_value=RANGES["credit_score"][1], value=int(clamp_num(680, *RANGES["credit_score"])), step=1)
-                st.markdown(f'<div class="range-note">Dataset range: {RANGES["credit_score"][0]} → {RANGES["credit_score"][1]}</div>', unsafe_allow_html=True)
-                intent = st.selectbox("Loan intent", ["EDUCATION", "MEDICAL", "VENTURE", "PERSONAL", "DEBTCONSOLIDATION", "HOMEIMPROVEMENT"])
-                previous_default = st.selectbox("Previous loan default", ["No", "Yes"])
-
-            predict_clicked = st.button("RUN XGBOOST PREDICTION", use_container_width=True)
-
-    with result_col:
-        st.markdown('<div class="section-title">02 / Decision engine</div>', unsafe_allow_html=True)
-        if predict_clicked:
-            applicant = {
-                "person_age": age,
-                "person_income": income,
-                "person_home_ownership": home,
-                "person_emp_exp": emp,
-                "loan_intent": intent,
-                "loan_amnt": loan_amount,
-                "loan_int_rate": interest,
-                "loan_percent_income": loan_pct,
-                "cb_person_cred_hist_length": credit_history,
-                "credit_score": credit_score,
-                "previous_loan_defaults_on_file": previous_default,
-                "person_gender": gender,
-                "person_education": education,
-            }
-            try:
-                result = predict_one(bundle, applicant)
-                label_class = "approved" if result["prediction"] == 1 else "rejected"
-                st.markdown(
-                    f'<div class="decision"><div class="status">XGBoost decision</div>'
-                    f'<div class="label {label_class}">{result["label"]}</div>'
-                    f'<div class="prob">Approval probability · {result["approval_probability"]:.1%}</div>'
-                    f'<div class="confidence-bar"><div class="confidence-fill" style="width:{result["approval_probability"]:.1%}"></div></div>'
-                    f'<div class="decision-note">Model output is a prediction, not a real lending decision.</div></div>',
-                    unsafe_allow_html=True,
-                )
-                st.markdown(
-                    f'<div class="metric-row"><div class="metric"><div class="k">Approved</div><div class="v">{result["approval_probability"]:.1%}</div></div>'
-                    f'<div class="metric"><div class="k">Rejected</div><div class="v">{result["rejection_probability"]:.1%}</div></div>'
-                    f'<div class="metric"><div class="k">Test accuracy</div><div class="v">{metrics["accuracy"]:.1%}</div></div></div>',
-                    unsafe_allow_html=True,
-                )
-            except Exception as exc:
-                st.error(f"Prediction failed: {exc}")
-        else:
-            st.markdown('<div class="decision"><div class="status">Ready</div><div class="label" style="color:#cbd5e1">Awaiting input</div><div class="decision-note">Enter the applicant profile and run the real trained model.</div></div>', unsafe_allow_html=True)
-
-    st.markdown('<div class="section-title">03 / What happens under the hood</div>', unsafe_allow_html=True)
-    a, b, c, d = st.columns(4)
-    for col, number, title, text in [
-        (a, "01", "Validate", "All required raw features are collected and bounded by the reference dataset."),
-        (b, "02", "Transform", "The same encoding, IQR clipping and RobustScaler logic used during training is reused."),
-        (c, "03", "Predict", "XGBoost produces a binary class and class probabilities."),
-        (d, "04", "Explain", "The interface shows status, probabilities and benchmark context."),
-    ]:
-        with col:
-            st.markdown(f'<div class="card"><div class="card-k">{number}</div><div style="font-weight:800;margin-top:.4rem">{title}</div><div class="card-note">{text}</div></div>', unsafe_allow_html=True)
-
-
-elif page == "Batch Lab":
-    st.markdown('<div class="eyebrow mono">02 / OPERATIONS</div><div class="page-title">Batch Lab</div><div class="page-sub">Upload a CSV containing the raw applicant fields, score every valid row with the trained XGBoost model, inspect the results, and download the scored dataset.</div>', unsafe_allow_html=True)
-    template = reference[MODEL_INPUT_COLUMNS].head(3).copy()
-    template.insert(0, "loan_id", range(1, len(template) + 1))
-    buf = BytesIO()
-    template.to_csv(buf, index=False)
-    c1, c2, c3 = st.columns(3)
-    with c1:
-        st.download_button("DOWNLOAD CSV TEMPLATE", data=buf.getvalue(), file_name="loan_prediction_template.csv", mime="text/csv", use_container_width=True)
-    with c2:
-        st.metric("Required raw fields", len(MODEL_INPUT_COLUMNS))
-    with c3:
-        st.metric("Model features", len(bundle.feature_columns))
-    uploaded = st.file_uploader("Upload applicant CSV", type=["csv"])
-    if uploaded is not None:
-        try:
-            batch = pd.read_csv(uploaded)
-            missing = [c for c in MODEL_INPUT_COLUMNS if c not in batch.columns]
-            if missing:
-                st.error("Missing required columns: " + ", ".join(missing))
-            else:
-                st.success(f"Schema valid · {len(batch):,} rows loaded")
-                with st.expander("Preview uploaded data", expanded=False):
-                    st.dataframe(batch.head(10), use_container_width=True)
-                if st.button("SCORE ENTIRE FILE", use_container_width=True):
-                    try:
-                        scored = predict_batch(bundle, batch)
-                        approved = int((scored["prediction"] == 1).sum())
-                        rejected = int((scored["prediction"] == 0).sum())
-                        m1, m2, m3 = st.columns(3)
-                        m1.metric("Approved", f"{approved:,}")
-                        m2.metric("Rejected", f"{rejected:,}")
-                        m3.metric("Scored rows", f"{len(scored):,}")
-                        if "actual_status" in scored.columns:
-                            batch_acc = scored["correct"].mean()
-                            st.metric("Accuracy vs provided loan_status", f"{batch_acc:.2%}")
-                        st.dataframe(scored, use_container_width=True, height=420)
-                        out = BytesIO()
-                        scored.to_csv(out, index=False)
-                        st.download_button("DOWNLOAD SCORED CSV", data=out.getvalue(), file_name="loan_predictions_scored.csv", mime="text/csv", use_container_width=True)
-                    except Exception as exc:
-                        st.error(f"Batch prediction failed: {exc}")
-        except Exception as exc:
-            st.error(f"Could not read the CSV: {exc}")
-
-
-elif page == "Project Presentation":
-    st.markdown('<div class="eyebrow mono">03 / PROJECT STORY</div><div class="page-title">Project Presentation</div><div class="page-sub">A presentation built inside the product: problem → data → preprocessing → imbalance → benchmark → model selection → product → limitations → roadmap.</div>', unsafe_allow_html=True)
-    slides = [
-        ("01", "Loan Intelligence", "An end-to-end machine learning classification system for predicting observed loan status from borrower, loan and credit information.", "NTI • Machine Learning Track • Final Project", "92.87%", "XGBoost test accuracy"),
-        ("02", "The problem", "Loan-status prediction combines many interacting applicant and loan attributes. A useful ML system should make the workflow consistent, measurable and repeatable rather than relying on ad-hoc rules.", "Project question: can a classification pipeline predict loan status accurately while handling data quality and class imbalance?", None, None),
-        ("03", "Project objectives", "Understand the data, clean and transform mixed features, handle class imbalance, benchmark six classification strategies, select a strong model on held-out data, and expose the final model through an interactive UI.", "The deliverable is deliberately more than a notebook: it is a reproducible ML workflow plus a usable prediction interface.", None, None),
-        ("04", "Dataset snapshot", f"The project works with {len(reference):,} source rows and the raw applicant fields represented in the CSV. After preprocessing and encoding, the modeling matrix contains {len(bundle.feature_columns)} features.", "Target: loan_status. The modeling split is 80/20 with random_state=42.", f"{len(reference):,}", "source rows"),
-        ("05", "What the model sees", "Borrower profile: age, income, employment experience, education and gender. Loan profile: amount, interest rate, loan-to-income ratio and intent. Credit context: credit score, credit-history length and previous defaults. Ownership is categorical.", "The raw categorical values are converted into model-ready numeric representations.", str(len(MODEL_INPUT_COLUMNS)), "raw model inputs"),
-        ("06", "EDA & key signals", "Exploration covered distributions, missing values, duplicates, categorical counts, boxplots, scatterplots, target distribution and correlations. The strongest observed target relationships included previous defaults, loan-to-income ratio, interest rate, rent ownership and income.", "Correlation is a screening signal, not proof of causation. A near-zero linear correlation does not prove a feature is useless.", "0.54", "strongest observed correlation"),
-        ("07", "Data quality & cleaning", "loan_id is removed because it is an identifier rather than a predictive attribute. IQR clipping is applied to income, loan amount, interest rate, loan-percent-income, credit-history length and credit score. Age is constrained to ≤80 and employment experience to ≤60.", "These operations match the project notebook pipeline used for the benchmark.", None, None),
-        ("08", "Encoding mixed data", "Gender and previous-default status are mapped to binary values. Education is encoded from High School through Doctorate as 1→5. Home ownership and loan intent are one-hot encoded with drop_first=True.", "The education mapping is ordinal; one-hot encoding would be a neutral alternative if the project were hardened further.", None, None),
-        ("09", "Robust scaling", "RobustScaler uses the median and interquartile range, making it less sensitive to extreme values than mean/std scaling. The scaler is fitted on the training split and then applied to the test split.", "This keeps the model's numeric representation consistent between training and inference.", None, None),
-        ("10", "Class imbalance", "Before resampling, the training data contained 27,991 class-0 rows and 8,001 class-1 rows. SMOTETomek produced a balanced training set of 27,887 rows per class.", "SMOTE creates minority examples while Tomek-link cleaning removes ambiguous overlaps from the resampled training distribution.", "27,887", "rows per class after SMOTETomek"),
-        ("11", "Six-model benchmark", "The project compares Logistic Regression, KNN, Decision Tree, Random Forest, SVM and XGBoost on the same held-out test set. This prevents selecting an algorithm simply because it is familiar.", "Benchmark accuracy: Logistic 86.55% • KNN 86.29% • Tree 89.28% • Random Forest 89.48% • SVM 88.02% • XGBoost 92.87%.", "6", "classifiers compared"),
-        ("12", "Why XGBoost?", "XGBoost delivered the highest test accuracy in this benchmark and the strongest class-1 precision/F1 combination among the tested models. It is therefore the strongest overall choice for this project benchmark—not a universal winner.", "XGBoost: 92.87% accuracy • 0.87 class-1 precision • 0.80 class-1 recall • 0.83 class-1 F1.", "92.87%", "held-out test accuracy"),
-        ("13", "Accuracy is not the whole story", "Logistic Regression and SVM reached 0.92 class-1 recall, higher than XGBoost's 0.80. If missing a positive case were much more expensive than producing a false positive, the preferred operating point could change.", "Model choice depends on the business cost of errors, not only on the largest accuracy number.", "0.80", "XGBoost class-1 recall"),
-        ("14", "Generalization & overfitting", "The Decision Tree reached 100% training accuracy but only 89.28% test accuracy, a clear overfitting warning. XGBoost also has a train/test gap (97.68% vs 92.87%), so the final model should not be presented as perfect.", "The test result is evidence from this split—not proof of production performance on future populations.", "4.81 pts", "XGBoost train/test gap"),
-        ("15", "From notebook to product", "The application reuses the same transformation path for inference, then feeds the processed row to the trained XGBoost classifier. The UI exposes single-row prediction, batch scoring, probabilities, benchmark context and model insights.", "The product layer makes the ML pipeline demonstrable and repeatable instead of leaving the result inside a notebook.", None, None),
-        ("16", "Prediction Studio", "Users enter all 13 raw model inputs. Numeric fields are bounded by the supplied dataset. The application runs the real trained model and displays Approved/Rejected plus approval and rejection probabilities.", "Same raw schema → same preprocessing logic → XGBoost inference → decision output.", "13", "raw input fields"),
-        ("17", "Batch Lab", "A CSV template can be downloaded, populated with multiple applicants and uploaded back into the app. The system validates the required schema, scores every valid row, optionally compares predictions with a supplied loan_status column, and exports the scored CSV.", "This is the bridge from a single demo prediction to repeatable data processing.", None, None),
-        ("18", "Model insights", "The app exposes the six-model benchmark, XGBoost feature importance, the confusion matrix and the precision/recall trade-off. These views connect the numerical benchmark to a model-selection argument.", "Correlation and model feature importance answer different questions and should not be conflated.", None, None),
-        ("19", "Responsible interpretation", "The project does not claim that 92.87% accuracy means every future applicant will be classified correctly. It also does not claim causality from correlations. Dataset representativeness, fairness, calibration, monitoring and governance require deeper validation before real lending use.", "A strong ML defense is honest about scope and uncertainty.", None, None),
-        ("20", "Production roadmap", "Next steps: cross-validation, hyperparameter tuning, threshold/cost analysis, SHAP explanations, fairness audits, drift monitoring, model/version tracking, stronger input validation, secure deployment and a dedicated API layer.", "The current application is a project prototype and demonstration—not a production credit-risk system.", None, None),
-        ("21", "The complete ML lifecycle", "DATA → CLEANING → ENCODING → SCALING → BALANCING → BENCHMARKING → XGBOOST → INFERENCE → PRODUCT.", "The value of the project is the complete, reproducible path from raw data to an interactive decision interface.", "DATA → MODEL → PRODUCT", "end-to-end workflow"),
-        ("22", "Team & closing", "Yusuf Ayman Tolba • Mohamed Reda Hussein • Abdelrahman Mohamed Ahmed • Abdelmoniem Ibrahim Abdelmoniem", "Built for the NTI Machine Learning track. Thank you.", "Q&A", "Let's run the model."),
-    ]
-    if "slide_idx" not in st.session_state:
-        st.session_state.slide_idx = 0
-    nav1, nav2, nav3 = st.columns([1, 3, 1])
-    with nav1:
-        if st.button("← PREVIOUS", use_container_width=True):
-            st.session_state.slide_idx = max(0, st.session_state.slide_idx - 1)
-    with nav2:
-        chosen = st.slider("Slide", 1, len(slides), st.session_state.slide_idx + 1, label_visibility="collapsed")
-        st.session_state.slide_idx = chosen - 1
-    with nav3:
-        if st.button("NEXT →", use_container_width=True):
-            st.session_state.slide_idx = min(len(slides) - 1, st.session_state.slide_idx + 1)
-    num, title, body, note, stat, stat_label = slides[st.session_state.slide_idx]
-    stat_html = f'<div class="big-stat">{stat}</div><div class="slide-copy">{stat_label}</div>' if stat else ''
-    st.markdown(
-        f'<div class="deck"><div class="slide-count">SLIDE {num} / {len(slides):02d}</div><div class="slide-title">{title}</div>'
-        f'<div class="slide-copy">{body}</div>{stat_html}<div class="quote">{note}</div>'
-        f'<div class="deck-footer">NTI • MACHINE LEARNING • LOAN INTELLIGENCE • PROJECT PRESENTATION</div></div>',
-        unsafe_allow_html=True,
-    )
-
-
-elif page == "Model Insights":
-    st.markdown('<div class="eyebrow mono">04 / EVIDENCE</div><div class="page-title">Model Insights</div><div class="page-sub">The benchmark, final-model metrics, confusion matrix and model-level feature importance behind the live application.</div>', unsafe_allow_html=True)
-    c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Test accuracy", f'{metrics["accuracy"]:.2%}')
-    c2.metric("Class 1 precision", f'{metrics["classification_report"]["1"]["precision"]:.2f}')
-    c3.metric("Class 1 recall", f'{metrics["classification_report"]["1"]["recall"]:.2f}')
-    c4.metric("Class 1 F1", f'{metrics["classification_report"]["1"]["f1-score"]:.2f}')
-
-    st.markdown('<div class="section-title">Benchmark comparison</div>', unsafe_allow_html=True)
-    display_benchmark = BENCHMARK.copy()
-    for col in ["Precision", "Recall", "F1"]:
-        display_benchmark[col] = display_benchmark[col].map(lambda x: f"{x:.2f}")
-    display_benchmark["Accuracy"] = display_benchmark["Accuracy"].map(lambda x: f"{x:.2f}%")
-    st.dataframe(display_benchmark, use_container_width=True, hide_index=True)
-    st.bar_chart(BENCHMARK.set_index("Model")["Accuracy"], use_container_width=True)
-
-    left, right = st.columns(2, gap="large")
+if page=="Prediction Studio":
+    st.markdown(f'<div class="hero"><div class="eyebrow mono">NTI / MACHINE LEARNING TRACK / FINAL PROJECT</div><h1>Loan <span>Intelligence.</span></h1><p>Interactive binary loan-status prediction using the reusable XGBoost workflow. Numeric controls are bounded by the reference dataset, while inference uses the model bundle in <span class="mono">src/model.py</span>.</p><div class="hero-meta"><div class="pill"><strong>{metrics["accuracy"]:.2%}</strong> test accuracy</div><div class="pill"><strong>{len(reference):,}</strong> source rows</div><div class="pill"><strong>{len(bundle.feature_columns)}</strong> encoded features</div><div class="pill"><strong>6</strong> classifiers benchmarked</div></div></div>',unsafe_allow_html=True)
+    left,right=st.columns([1.18,.82],gap='large')
     with left:
-        st.markdown('<div class="section-title">XGBoost feature importance</div>', unsafe_allow_html=True)
-        importance = pd.DataFrame({"Feature": bundle.feature_columns, "Importance": bundle.model.feature_importances_}).sort_values("Importance", ascending=False).head(12).set_index("Feature")
-        st.bar_chart(importance, use_container_width=True)
+        st.markdown('<div class="section-title">01 / Applicant profile — all 13 model inputs</div>',unsafe_allow_html=True)
+        with st.container(border=True):
+            a,b=st.columns(2)
+            with a:
+                age=st.number_input('Age',min_value=18,max_value=80,value=30,step=1)
+                st.markdown('Dataset guardrail: 18 → 80',unsafe_allow_html=True)
+                income=st.number_input('Annual income',min_value=RANGES['income'][0],max_value=RANGES['income'][1],value=clamp(60000,*RANGES['income']),step=1000.0)
+                st.markdown(f'<div class="range-note">Dataset: {RANGES["income"][0]:,.0f} → {RANGES["income"][1]:,.0f}</div>',unsafe_allow_html=True)
+                emp=st.number_input('Employment experience (years)',min_value=0,max_value=60,value=5,step=1)
+                edu=st.selectbox('Education',['High School','Associate','Bachelor','Master','Doctorate'],index=2)
+                gender=st.selectbox('Gender',['male','female'])
+                home=st.selectbox('Home ownership',['RENT','OWN','MORTGAGE','OTHER'])
+                default=st.selectbox('Previous loan default',['No','Yes'])
+            with b:
+                intent=st.selectbox('Loan intent',['EDUCATION','MEDICAL','VENTURE','PERSONAL','DEBTCONSOLIDATION','HOMEIMPROVEMENT'])
+                amount=st.number_input('Loan amount',min_value=RANGES['loan_amount'][0],max_value=RANGES['loan_amount'][1],value=clamp(10000,*RANGES['loan_amount']),step=500.0)
+                rate=st.number_input('Interest rate (%)',min_value=RANGES['interest'][0],max_value=RANGES['interest'][1],value=clamp(10,*RANGES['interest']),step=.1)
+                ratio=st.number_input('Loan / income ratio',min_value=RANGES['loan_percent_income'][0],max_value=RANGES['loan_percent_income'][1],value=clamp(.2,*RANGES['loan_percent_income']),step=.01)
+                history=st.number_input('Credit history length (years)',min_value=RANGES['credit_history'][0],max_value=RANGES['credit_history'][1],value=clamp(4,*RANGES['credit_history']),step=.5)
+                score=st.number_input('Credit score',min_value=RANGES['credit_score'][0],max_value=RANGES['credit_score'][1],value=clamp(680,*RANGES['credit_score']),step=1)
+            run=st.button('RUN LOAN INTELLIGENCE →',use_container_width=True,type='primary')
     with right:
-        st.markdown('<div class="section-title">Confusion matrix — held-out test set</div>', unsafe_allow_html=True)
-        cm = pd.DataFrame(metrics["confusion_matrix"], index=["Actual 0", "Actual 1"], columns=["Predicted 0", "Predicted 1"])
-        st.dataframe(cm, use_container_width=True)
-        st.markdown('<div class="risk warn"><strong>Interpretation:</strong> XGBoost class-1 recall is 0.80, so some positive cases are missed. Accuracy alone should not be treated as the full evaluation.</div>', unsafe_allow_html=True)
+        st.markdown('<div class="section-title">02 / Decision output</div>',unsafe_allow_html=True)
+        if run:
+            applicant={'person_age':age,'person_income':income,'person_home_ownership':home,'person_emp_exp':emp,'loan_intent':intent,'loan_amnt':amount,'loan_int_rate':rate,'loan_percent_income':ratio,'cb_person_cred_hist_length':history,'credit_score':score,'previous_loan_defaults_on_file':default,'person_gender':gender,'person_education':edu}
+            st.session_state.last_prediction=predict_one(bundle,applicant)
+        result=st.session_state.get('last_prediction')
+        if result:
+            cls='approved' if result['prediction']==1 else 'rejected';p=result['approval_probability']
+            st.markdown(f'<div class="decision"><div class="status">MODEL DECISION</div><div class="label {cls}">{result["label"].upper()}</div><div class="prob">Approval probability · {p:.1%}</div><div class="confidence-bar"><div class="confidence-fill" style="width:{p*100:.1f}%"></div></div><div class="decision-note">XGBoost probability output — not a calibrated financial-risk score.</div></div>',unsafe_allow_html=True)
+            st.markdown(f'<div class="metric-row"><div class="metric"><div class="k">Approved class</div><div class="v">{p:.1%}</div></div><div class="metric"><div class="k">Rejected class</div><div class="v">{result["rejection_probability"]:.1%}</div></div><div class="metric"><div class="k">Test accuracy</div><div class="v">{metrics["accuracy"]:.1%}</div></div></div>',unsafe_allow_html=True)
+        else: st.markdown('<div class="decision"><div class="status">READY FOR INFERENCE</div><div class="label" style="color:#c7d2df">AWAITING INPUT</div><div class="prob">Fill the profile and run the model.</div><div class="confidence-bar"><div class="confidence-fill" style="width:0%"></div></div><div class="decision-note">The exact trained feature layout will be used.</div></div>',unsafe_allow_html=True)
+    st.markdown('<div class="section-title">03 / System pulse</div>',unsafe_allow_html=True)
+    x,y,z=st.columns(3)
+    x.markdown(card('Best benchmark','XGBoost','Highest test accuracy in the six-model comparison'),unsafe_allow_html=True)
+    y.markdown(card('Class-1 F1','0.83','XGBoost on held-out test data'),unsafe_allow_html=True)
+    z.markdown(card('Training balance','SMOTETomek','Applied only to training data'),unsafe_allow_html=True)
 
-    st.markdown('<div class="section-title">Model selection argument</div>', unsafe_allow_html=True)
-    st.markdown('<div class="card"><div class="card-k">Decision</div><div style="font-size:1.35rem;font-weight:800;margin-top:.35rem">XGBoost is the strongest overall model in this benchmark.</div><div class="card-note">It has the highest held-out accuracy (92.87%) and strong class-1 precision/F1. Logistic Regression and SVM have higher class-1 recall (0.92), so the final choice is a trade-off rather than a universal claim.</div></div>', unsafe_allow_html=True)
+elif page=="Batch Lab":
+    st.markdown('<div class="page-title">Batch <span>Lab.</span></div><div class="page-sub">Upload raw applicant records, validate the schema, score them, and export the results.</div>',unsafe_allow_html=True)
+    template_cols=MODEL_INPUT_COLUMNS+['loan_id','loan_status']; template=pd.DataFrame([{c:'' for c in template_cols}]); template.loc[0,'person_age']=30;template.loc[0,'person_income']=60000;template.loc[0,'person_home_ownership']='RENT';template.loc[0,'person_emp_exp']=5;template.loc[0,'loan_intent']='EDUCATION';template.loc[0,'loan_amnt']=10000;template.loc[0,'loan_int_rate']=10;template.loc[0,'loan_percent_income']=.2;template.loc[0,'cb_person_cred_hist_length']=4;template.loc[0,'credit_score']=680;template.loc[0,'previous_loan_defaults_on_file']='No';template.loc[0,'person_gender']='male';template.loc[0,'person_education']='Bachelor';template.loc[0,'loan_id']='example_001'
+    l,r=st.columns([.75,1.25],gap='large')
+    with l:
+        st.markdown('<div class="section-title">01 / Schema</div>',unsafe_allow_html=True)
+        st.markdown('<div class="card"><div class="card-k">Required raw fields</div><div style="margin-top:.5rem">'+''.join(f'<span class="feature-chip"><b>•</b> {html.escape(c)}</span>' for c in MODEL_INPUT_COLUMNS)+'</div><div class="card-note">loan_id is optional. loan_status is optional and only used for evaluation when present.</div></div>',unsafe_allow_html=True)
+        st.download_button('DOWNLOAD CSV TEMPLATE',template.to_csv(index=False).encode(),file_name='loan_prediction_template.csv',mime='text/csv',use_container_width=True)
+        upload=st.file_uploader('Upload applicant CSV',type=['csv'])
+    with r:
+        if upload is None: st.markdown('<div class="about-hero"><div class="eyebrow mono">BATCH INFERENCE</div><h2 style="font-size:2rem;letter-spacing:-.05em">Score many applicants in one run.</h2><p class="muted">Upload the template or a CSV containing the 13 required raw model inputs.</p><div class="risk">The schema is validated before inference. Missing columns are rejected instead of silently producing partial predictions.</div></div>',unsafe_allow_html=True)
+        else:
+            try:
+                df=pd.read_csv(upload); missing=[c for c in MODEL_INPUT_COLUMNS if c not in df.columns]
+                if missing: st.error('Missing required columns: '+', '.join(missing))
+                else:
+                    st.success(f'Validated {len(df):,} rows.')
+                    st.dataframe(df.head(8),use_container_width=True,hide_index=True)
+                    if st.button('RUN BATCH INFERENCE →',use_container_width=True,type='primary'):
+                        try: st.session_state.batch_scored=predict_batch(bundle,df);st.success(f'Scored {len(st.session_state.batch_scored):,} rows.')
+                        except Exception as e: st.error(f'Inference failed: {e}')
+            except Exception as e: st.error(f'Could not read CSV: {e}')
+    scored=st.session_state.get('batch_scored')
+    if scored is not None:
+        st.markdown('<div class="section-title">02 / Results</div>',unsafe_allow_html=True)
+        a,b,c=st.columns(3);a.markdown(card('Approved',int((scored.prediction==1).sum()),'Predicted rows'),unsafe_allow_html=True);b.markdown(card('Rejected',int((scored.prediction==0).sum()),'Predicted rows'),unsafe_allow_html=True);c.markdown(card('Rows scored',len(scored),'Inference output'),unsafe_allow_html=True)
+        if 'actual_status' in scored.columns: st.info(f'Batch accuracy against supplied loan_status: {float(scored.correct.mean()):.2%}')
+        st.dataframe(scored,use_container_width=True,hide_index=True)
+        st.download_button('DOWNLOAD SCORED CSV',scored.to_csv(index=False).encode(),file_name='loan_predictions_scored.csv',mime='text/csv',use_container_width=True)
 
+elif page=="Project Presentation":
+    st.markdown('<div class="page-title">Project <span>Presentation.</span></div><div class="page-sub">A presentation mode inside the product — animated, keyboard-driven, and designed for fullscreen delivery.</div>',unsafe_allow_html=True)
+    st.markdown('<div class="present-tip"><span><b>← →</b> navigate · <b>SPACE</b> next · <b>F</b> fullscreen · <b>double-click</b> fullscreen</span><span class="mono">16 SLIDES / FULL STORY</span></div>',unsafe_allow_html=True)
+    components.html(presentation_html(),height=770,scrolling=False)
+    st.caption('Use FULLSCREEN inside the presentation for the cleanest projector/demo experience.')
 
-elif page == "Team & About":
-    st.markdown('<div class="eyebrow mono">05 / IDENTITY</div><div class="page-title">Team & About</div><div class="page-sub">Project identity, team members, technical scope and responsible-use framing.</div>', unsafe_allow_html=True)
-    cols = st.columns(4)
-    for i, (col, name) in enumerate(zip(cols, TEAM), start=1):
-        with col:
-            st.markdown(f'<div class="team-card"><div class="team-number">MEMBER {i:02d}</div><div class="team-name">{name}</div><div class="team-role">NTI Machine Learning Project</div></div>', unsafe_allow_html=True)
-    st.markdown('<div class="section-title">Project identity</div>', unsafe_allow_html=True)
-    a, b, c = st.columns(3)
-    with a:
-        st.markdown('<div class="card"><div class="card-k">Track</div><div class="card-v">ML</div><div class="card-note">Machine Learning — binary classification</div></div>', unsafe_allow_html=True)
-    with b:
-        st.markdown('<div class="card"><div class="card-k">Final model</div><div class="card-v">XGB</div><div class="card-note">XGBoost classifier</div></div>', unsafe_allow_html=True)
-    with c:
-        st.markdown(f'<div class="card"><div class="card-k">Benchmark</div><div class="card-v">{metrics["accuracy"]:.2%}</div><div class="card-note">Held-out test accuracy</div></div>', unsafe_allow_html=True)
-    st.markdown('<div class="section-title">Responsible use</div>', unsafe_allow_html=True)
-    st.info("This project is an educational ML prototype. It predicts patterns in the supplied dataset and should not be used as an actual lending decision system without deeper validation, fairness analysis, calibration, security, monitoring and governance.")
-    st.markdown(f'<div class="footer-note">NTI • Loan Intelligence • Built by the project team • <a href="{NTI_SITE}" target="_blank" style="color:#22d3ee">National Telecommunication Institute</a></div>', unsafe_allow_html=True)
+elif page=="Model Insights":
+    st.markdown('<div class="page-title">Model <span>Insights.</span></div><div class="page-sub">The evidence behind the final model choice.</div>',unsafe_allow_html=True)
+    a,b,c,d=st.columns(4);a.markdown(card('Accuracy','92.87%','XGBoost held-out test'),unsafe_allow_html=True);b.markdown(card('Class-1 precision','87%','XGBoost'),unsafe_allow_html=True);c.markdown(card('Class-1 recall','80%','XGBoost'),unsafe_allow_html=True);d.markdown(card('Class-1 F1','83%','XGBoost'),unsafe_allow_html=True)
+    st.markdown('<div class="section-title">Six-model benchmark</div>',unsafe_allow_html=True);show=BENCHMARK.copy();show['Accuracy']=show['Accuracy'].map(lambda x:f'{x:.2f}%');
+    for col in ['Precision','Recall','F1']: show[col]=show[col].map(lambda x:f'{x:.0f}%')
+    st.dataframe(show,use_container_width=True,hide_index=True)
+    l,r=st.columns(2,gap='large')
+    with l:
+        st.markdown('<div class="section-title">XGBoost feature importance</div>',unsafe_allow_html=True)
+        imp=pd.Series(bundle.model.feature_importances_,index=bundle.feature_columns).sort_values(ascending=False).head(12)
+        st.bar_chart(pd.DataFrame({'Importance':imp}))
+    with r:
+        st.markdown('<div class="section-title">Held-out confusion matrix</div>',unsafe_allow_html=True)
+        cm=metrics['confusion_matrix'];st.markdown(f'<div class="card"><div class="card-k">Predicted × Actual</div><div style="font-family:DM Mono,monospace;font-size:1.35rem;line-height:2;margin-top:1rem">TN <span style="color:#22d3ee">{cm[0][0]:,}</span> · FP <span style="color:#fb7185">{cm[0][1]:,}</span><br>FN <span style="color:#fbbf24">{cm[1][0]:,}</span> · TP <span style="color:#a3e635">{cm[1][1]:,}</span></div><div class="card-note">Counts from the XGBoost held-out test set.</div></div>',unsafe_allow_html=True)
+        st.markdown('<div class="insight"><h4>Precision / recall trade-off</h4><p>XGBoost has stronger class-1 precision and F1, while Logistic Regression and SVM have higher class-1 recall. The final selection reflects the benchmark objective used here.</p></div>',unsafe_allow_html=True)
+        st.markdown('<div class="insight"><h4>Generalization</h4><p>The Decision Tree reaches 100% training accuracy and a lower test result. XGBoost also has a train/test gap, so further validation remains important.</p></div>',unsafe_allow_html=True)
+    st.markdown('<div class="section-title">Encoded feature space</div>',unsafe_allow_html=True);st.markdown(''.join(f'<span class="feature-chip">{html.escape(c)}</span>' for c in bundle.feature_columns),unsafe_allow_html=True)
+
+else:
+    st.markdown('<div class="about-hero"><div class="eyebrow mono">NTI / MACHINE LEARNING TRACK</div><h1 style="font-size:3.3rem;letter-spacing:-.07em;margin:.5rem 0">Loan Intelligence <span style="color:#22d3ee">Project.</span></h1><p style="color:#aab8c8;max-width:850px;line-height:1.8">A complete educational ML product combining exploratory analysis, preprocessing, imbalance handling, model benchmarking, XGBoost inference, batch scoring, diagnostics, and a presentation layer.</p></div>',unsafe_allow_html=True)
+    st.markdown('<div class="section-title">Team</div>',unsafe_allow_html=True);cols=st.columns(4);roles=['ML workflow & integration','Data analysis & preprocessing','Model evaluation & experimentation','Application & presentation']
+    for i,(col,name,role) in enumerate(zip(cols,TEAM,roles)): col.markdown(f'<div class="team-card"><div class="team-number">0{i+1}</div><div class="team-name">{html.escape(name)}</div><div class="team-role">{role}</div></div>',unsafe_allow_html=True)
+    st.markdown('<div class="section-title">System at a glance</div>',unsafe_allow_html=True);cols=st.columns(4)
+    for col,k,v,n in zip(cols,['DATA','FEATURES','MODELS','WINNER'],[f'{len(reference):,}',str(len(bundle.feature_columns)),'6','92.87%'],['source rows','encoded features','benchmarked classifiers','XGBoost test accuracy']): col.markdown(card(k,v,n),unsafe_allow_html=True)
+    st.markdown('<div class="section-title">Technical stack</div>',unsafe_allow_html=True);st.markdown(''.join(f'<span class="feature-chip">{x}</span>' for x in ['Python','Pandas','Scikit-learn','imbalanced-learn','XGBoost','Streamlit','GitHub Actions']),unsafe_allow_html=True)
+    st.markdown(f'<div class="footer-note">Educational ML prototype · <a href="{NTI_SITE}" target="_blank" style="color:#22d3ee">Official NTI website</a></div>',unsafe_allow_html=True)
