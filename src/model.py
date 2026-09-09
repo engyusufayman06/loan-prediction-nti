@@ -12,14 +12,9 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import RobustScaler
 from xgboost import XGBClassifier
 
-
 NUMERIC_CLIP_COLUMNS = [
-    "person_income",
-    "loan_amnt",
-    "loan_int_rate",
-    "loan_percent_income",
-    "cb_person_cred_hist_length",
-    "credit_score",
+    "person_income", "loan_amnt", "loan_int_rate", "loan_percent_income",
+    "cb_person_cred_hist_length", "credit_score",
 ]
 
 MODEL_INPUT_COLUMNS = [
@@ -28,7 +23,6 @@ MODEL_INPUT_COLUMNS = [
     "cb_person_cred_hist_length", "credit_score", "previous_loan_defaults_on_file",
     "person_gender", "person_education",
 ]
-
 
 @dataclass
 class LoanModelBundle:
@@ -48,18 +42,15 @@ def _clean_and_encode(df: pd.DataFrame, clip_bounds=None):
     data = df.copy()
     if "loan_id" in data.columns:
         data = data.drop(columns=["loan_id"])
-
     if clip_bounds is None:
         clip_bounds = {c: _iqr_bounds(data[c]) for c in NUMERIC_CLIP_COLUMNS if c in data.columns}
     for col, (low, high) in clip_bounds.items():
         if col in data.columns:
             data[col] = data[col].clip(lower=low, upper=high)
-
     if "person_age" in data.columns:
         data = data.loc[data["person_age"] <= 80].copy()
     if "person_emp_exp" in data.columns:
         data = data.loc[data["person_emp_exp"] <= 60].copy()
-
     mappings = {
         "person_gender": {"male": 1, "female": 0},
         "previous_loan_defaults_on_file": {"Yes": 1, "No": 0},
@@ -68,7 +59,6 @@ def _clean_and_encode(df: pd.DataFrame, clip_bounds=None):
     for col, mapping in mappings.items():
         if col in data.columns:
             data[col] = data[col].map(mapping)
-
     categorical = [c for c in ["person_home_ownership", "loan_intent"] if c in data.columns]
     if categorical:
         data = pd.get_dummies(data, columns=categorical, drop_first=True)
@@ -79,19 +69,16 @@ def train_model(data_path: str | Path) -> tuple[LoanModelBundle, dict[str, Any]]
     data = pd.read_csv(data_path)
     if "loan_status" not in data.columns:
         raise ValueError("Dataset must contain a 'loan_status' target column.")
-
     y = data["loan_status"].astype(int)
     X_clean, clip_bounds = _clean_and_encode(data.drop(columns=["loan_status"]))
     y = y.loc[X_clean.index]
     X_train, X_test, y_train, y_test = train_test_split(X_clean, y, test_size=0.20, random_state=42, stratify=None)
     feature_columns = X_train.columns.tolist()
-
     scaler = RobustScaler()
     X_train_scaled = scaler.fit_transform(X_train)
     X_test_scaled = scaler.transform(X_test)
     sampler = SMOTETomek(random_state=42)
     X_train_balanced, y_train_balanced = sampler.fit_resample(X_train_scaled, y_train)
-
     model = XGBClassifier(random_state=42, eval_metric="logloss")
     model.fit(X_train_balanced, y_train_balanced)
     y_pred = model.predict(X_test_scaled)
@@ -128,10 +115,10 @@ def predict_batch(bundle: LoanModelBundle, data: pd.DataFrame) -> pd.DataFrame:
     missing = [c for c in MODEL_INPUT_COLUMNS if c not in data.columns]
     if missing:
         raise ValueError(f"Missing required columns: {', '.join(missing)}")
-
     source = data.copy()
-    row_ids = source["loan_id"] if "loan_id" in source.columns else pd.Series(range(1, len(source) + 1), index=source.index, name="loan_id")
     encoded = _prepare_for_inference(bundle, source)
+    valid_source = source.loc[encoded.index]
+    row_ids = valid_source["loan_id"] if "loan_id" in valid_source.columns else pd.Series(range(1, len(valid_source) + 1), index=valid_source.index, name="loan_id")
     scaled = bundle.scaler.transform(encoded)
     predictions = bundle.model.predict(scaled).astype(int)
     probabilities = bundle.model.predict_proba(scaled)
@@ -141,11 +128,11 @@ def predict_batch(bundle: LoanModelBundle, data: pd.DataFrame) -> pd.DataFrame:
         "predicted_status": ["Approved" if p == 1 else "Rejected" for p in predictions],
         "approval_probability": probabilities[:, 1],
         "rejection_probability": probabilities[:, 0],
-    }, index=source.index)
-    if "loan_status" in source.columns:
-        result["actual_status"] = source["loan_status"].values
+    }, index=valid_source.index)
+    if "loan_status" in valid_source.columns:
+        result["actual_status"] = valid_source["loan_status"].values
         result["correct"] = result["prediction"] == result["actual_status"].astype(int)
-    return result
+    return result.reset_index(drop=True)
 
 
 def save_bundle(bundle: LoanModelBundle, path: str | Path) -> None:
