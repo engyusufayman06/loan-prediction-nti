@@ -1,6 +1,7 @@
-loan_id,person_age,person_income,person_home_ownership,person_emp_exp,loan_intent,loan_amnt,loan_int_rate,loan_percent_income,cb_person_cred_hist_length,credit_score,previous_loan_defaults_on_file,person_gender,person_education
-DEMO001,24,42000,RENT,3,EDUCATION,8000,10.5,0.19,3,640,No,male,Bachelor
-DEMO002,31,65000,MORTGAGE,8,HOMEIMPROVEMENT,15000,8.2,0.23,7,720,No,female,Master
-DEMO003,45,90000,OWN,20,DEBTCONSOLIDATION,22000,11.0,0.24,15,690,Yes,male,Associate
-DEMO004,28,50000,RENT,5,MEDICAL,12000,13.5,0.24,5,610,No,female,Bachelor
-DEMO005,38,110000,OWN,14,VENTURE,18000,7.8,0.16,11,760,No,male,Doctorate
+loan_id,person_age,person_gender,person_education,person_income,person_emp_exp,person_home_ownership,loan_amnt,loan_intent,loan_int_rate,loan_percent_income,cb_person_cred_hist_length,credit_score,previous_loan_defaults_on_file
+DEMO001,32.0,male,Associate,96865.0,10,MORTGAGE,7500.0,EDUCATION,6.04,0.08,10.0,601,No
+DEMO002,24.0,male,Associate,56838.0,6,RENT,9000.0,EDUCATION,11.49,0.16,4.0,647,Yes
+DEMO003,23.0,female,Bachelor,39944.0,1,OWN,5000.0,VENTURE,13.99,0.13,3.0,597,Yes
+DEMO004,22.0,female,Master,37298.0,0,RENT,5000.0,MEDICAL,14.88,0.13,4.0,711,No
+DEMO005,42.0,male,High School,67974.0,20,MORTGAGE,10000.0,HOMEIMPROVEMENT,15.41,0.15,11.0,586,No
+DEMO006,25.0,female,Bachelor,45608.0,3,RENT,2800.0,HOMEIMPROVEMENT,16.29,0.06,3.0,628,No
