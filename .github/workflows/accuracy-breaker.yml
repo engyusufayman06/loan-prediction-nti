@@ -5,6 +5,8 @@ on:
   push:
     paths:
       - "scripts/accuracy_breaker.py"
+      - "scripts/accuracy_breaker_trigger.py"
+      - "scripts/accuracy_breaker_trigger.txt"
       - "src/model.py"
       - "loan_data.csv"
       - "requirements.txt"
