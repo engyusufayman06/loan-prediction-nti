@@ -21,8 +21,13 @@ def prepare():
     x_fit, bounds = _clean_and_encode(x_fit_raw)
     x_val, _ = _clean_and_encode(x_val_raw, bounds)
     x_test, _ = _clean_and_encode(x_test_raw, bounds)
+
+    # _clean_and_encode can remove invalid rows, so align every target to the
+    # exact rows that survived preprocessing before computing metrics.
     y_fit = y_fit.loc[x_fit.index]
     y_val = y_val.loc[x_val.index]
+    y_test = y_test.loc[x_test.index]
+
     columns = x_fit.columns.tolist()
     x_val = x_val.reindex(columns=columns, fill_value=0)
     x_test = x_test.reindex(columns=columns, fill_value=0)
@@ -81,5 +86,3 @@ def run():
 
 if __name__ == "__main__":
     run()
-
-# Trigger benchmark refresh after workflow trigger configuration update.
