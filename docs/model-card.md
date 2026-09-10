@@ -59,8 +59,8 @@ This model must not be treated as an autonomous credit-underwriting engine. It h
 5. Label-encode object columns.
 6. Split into stratified 80/20 train/test sets.
 7. Apply `SMOTE(random_state=42)` to the training split only.
-8. Fit `StandardScaler` on the SMOTE-resampled training data.
-9. Train XGBoost on the scaled training representation.
+8. Fit `StandardScaler` for the notebook's scale-sensitive model paths.
+9. Train XGBoost on the **unscaled** engineered/SMOTE representation, matching the notebook's tree-model path.
 
 ## XGBoost diagnostics
 
