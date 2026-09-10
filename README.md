@@ -9,7 +9,7 @@
 
 <img src="https://img.shields.io/badge/Track-Machine%20Learning-06B6D4?style=for-the-badge">
 <img src="https://img.shields.io/badge/Model-XGBoost-7C3AED?style=for-the-badge">
-<img src="https://img.shields.io/badge/Test%20Accuracy-92.87%25-22C55E?style=for-the-badge">
+<img src="https://img.shields.io/badge/Test%20Accuracy-93.28%25-22C55E?style=for-the-badge">
 <img src="https://img.shields.io/badge/App-Streamlit-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white">
 <img src="https://img.shields.io/badge/CI-GitHub%20Actions-2088FF?style=for-the-badge&logo=githubactions&logoColor=white">
 
@@ -26,7 +26,7 @@
 
 **Loan Intelligence** is an educational machine-learning system for **binary loan-status classification**. Instead of stopping at a notebook, the project packages the experiment into a small product: a reusable preprocessing/model layer, an interactive Streamlit application, batch CSV inference, model diagnostics, and an in-app technical presentation.
 
-> **Headline result:** XGBoost reached **92.87% held-out test accuracy**, with **0.87 class-1 precision** and **0.83 class-1 F1** in the project's six-model benchmark.
+> **Headline result:** XGBoost reached **93.28% held-out test accuracy**, with **0.8700 class-1 precision** and **0.8443 class-1 F1** in the project's nine-model benchmark.
 
 This repository is intentionally transparent: metrics, preprocessing decisions, class balancing, trade-offs, limitations, and the path toward production are documented rather than hidden behind a single accuracy number.
 
@@ -41,7 +41,7 @@ The Streamlit app is organized as a product workspace:
 | **Prediction Studio** | Enter a complete applicant profile and run real XGBoost inference. |
 | **Batch Lab** | Upload a CSV, validate its schema, score rows, inspect results, and download predictions. |
 | **Project Presentation** | Navigate a fullscreen, interactive technical deck covering the complete project story. |
-| **Model Insights** | Explore the six-model benchmark, XGBoost feature importance, confusion matrix, and metric trade-offs. |
+| **Model Insights** | Explore the nine-model benchmark, XGBoost feature importance, confusion matrix, and metric trade-offs. |
 | **Team & About** | Project identity, team members, and NTI context. |
 
 ### Product flow
@@ -107,12 +107,12 @@ This is **not** a production credit-underwriting engine. It is an NTI educationa
 |---|---:|
 | Source file | `loan_data.csv` |
 | Rows after preprocessing | **44,990** |
-| Encoded model features | **20** |
+| Encoded model features | **19** |
 | Target | `loan_status` |
-| Original class 0 | **27,991** |
-| Original class 1 | **8,001** |
-| Post-SMOTETomek class 0 | **27,887** |
-| Post-SMOTETomek class 1 | **27,887** |
+| Original class 0 | **35,000** |
+| Original class 1 | **10,000** |
+| Post-SMOTETomek class 0 | **27,899** |
+| Post-SMOTETomek class 1 | **27,899** |
 
 The notebook identifies the dataset source as Kaggle. The exact dataset URL is not recorded in the project files, so this README deliberately does **not** fabricate one.
 
@@ -175,12 +175,15 @@ The important engineering step is not simply training XGBoost. The same feature 
 
 | Model | Accuracy | Class-1 Precision | Class-1 Recall | Class-1 F1 |
 |---|---:|---:|---:|---:|
-| Logistic Regression | 86.55% | 0.64 | **0.92** | 0.75 |
-| KNN | 86.29% | 0.64 | 0.88 | 0.74 |
-| Decision Tree | 89.28% | 0.73 | 0.82 | 0.77 |
-| Random Forest | 89.48% | 0.71 | 0.88 | 0.79 |
-| SVM | 88.02% | 0.67 | **0.92** | 0.77 |
-| **XGBoost** | **92.87%** | **0.87** | 0.80 | **0.83** |
+| Logistic Regression | 86.40% | 0.6344 | **0.9155** | 0.7495 |
+| KNN | 86.52% | 0.6463 | 0.8690 | 0.7413 |
+| Decision Tree | 88.58% | 0.6935 | 0.8710 | 0.7722 |
+| Random Forest | 92.01% | 0.8111 | 0.8350 | 0.8229 |
+| Extra Trees | 91.68% | 0.8000 | 0.8340 | 0.8166 |
+| Gradient Boosting | 90.08% | 0.7311 | 0.8755 | 0.7968 |
+| HistGradientBoosting | 91.71% | 0.7946 | 0.8455 | 0.8193 |
+| SVM | 88.19% | 0.6727 | **0.9125** | 0.7745 |
+| **XGBoost** | **93.28%** | **0.8700** | 0.8200 | **0.8443** |
 
 ### Selection logic
 
@@ -195,15 +198,15 @@ However, it does **not** dominate every metric: Logistic Regression and SVM reac
 Before resampling, the training data contained:
 
 ```text
-Class 0  ████████████████████████████  27,991
-Class 1  ████████                       8,001
+Class 0  ████████████████████████████  27,992
+Class 1  ████████                       8,000
 ```
 
 After SMOTETomek:
 
 ```text
-Class 0  ████████████████████████████  27,887
-Class 1  ████████████████████████████  27,887
+Class 0  ████████████████████████████  27,899
+Class 1  ████████████████████████████  27,899
 ```
 
 The goal is to make the learner see a more balanced training distribution. Evaluation remains on the held-out test set.
@@ -217,15 +220,15 @@ The goal is to make the learner see a more balanced training distribution. Evalu
 ```text
                     Predicted
                  0           1
-Actual  0      6762        237
-        1       405       1594
+Actual  0      6753        245
+        1       360       1640
 ```
 
 For class 1, the benchmark reports:
 
-- **Precision:** 0.87
-- **Recall:** 0.80
-- **F1:** 0.83
+- **Precision:** 0.8700
+- **Recall:** 0.8200
+- **F1:** 0.8443
 
 This means the selected model is strong at avoiding false positive class-1 predictions relative to the other benchmarked models, while still missing some true class-1 cases. The right operating point depends on the business cost of false positives versus false negatives.
 
@@ -235,8 +238,8 @@ This means the selected model is strong at avoiding false positive class-1 predi
 
 The benchmark was not interpreted from training performance alone.
 
-- Decision Tree: **100% training accuracy** vs **89.28% test accuracy** → clear overfitting signal.
-- XGBoost: **97.68% training accuracy** vs **92.87% test accuracy** → a train/test gap exists, but the held-out result remains the project's strongest benchmark result.
+- Decision Tree: **88.58% test accuracy** → lower than XGBoost in the held-out benchmark.
+- XGBoost: **93.28% test accuracy** → the strongest held-out benchmark result.
 
 The README therefore avoids calling the model “perfect” or “production ready.”
 
