@@ -2,14 +2,9 @@ from pathlib import Path
 
 import pandas as pd
 import pytest
+from sklearn.ensemble import HistGradientBoostingClassifier
 
-from src.model import (
-    ENGINEERED_FEATURES,
-    MODEL_INPUT_COLUMNS,
-    _clean_and_encode,
-    predict_batch,
-)
-
+from src.model import ENGINEERED_FEATURES, MODEL_INPUT_COLUMNS, _clean_and_encode, predict_batch, train_model
 
 DATA_PATH = Path(__file__).resolve().parents[1] / "loan_data.csv"
 
@@ -24,7 +19,6 @@ def test_final_feature_engineering_is_numeric():
     df = pd.read_csv(DATA_PATH, nrows=100)
     X = df.drop(columns=["loan_status"])
     cleaned, encoders = _clean_and_encode(X)
-
     assert set(ENGINEERED_FEATURES).issubset(cleaned.columns)
     assert len(cleaned.columns) == 18
     assert encoders
@@ -35,7 +29,6 @@ def test_cleaning_applies_final_notebook_filters():
     df = pd.read_csv(DATA_PATH)
     X = df.drop(columns=["loan_status"])
     cleaned, _ = _clean_and_encode(X)
-
     assert cleaned["person_age"].max() <= 80
     assert cleaned["person_emp_exp"].max() <= 50
     assert len(cleaned) == 44988
@@ -43,6 +36,16 @@ def test_cleaning_applies_final_notebook_filters():
 
 def test_model_input_contract_has_13_raw_features():
     assert len(MODEL_INPUT_COLUMNS) == 13
+
+
+def test_deployable_model_is_hist_gradient_boosting():
+    bundle, metrics = train_model(DATA_PATH)
+    assert isinstance(bundle.model, HistGradientBoostingClassifier)
+    assert metrics["feature_count"] == 18
+    assert metrics["accuracy"] == pytest.approx(0.9328739719937764, abs=1e-6)
+    assert metrics["f1"] == pytest.approx(0.8465447154471545, abs=1e-6)
+    assert metrics["roc_auc"] == pytest.approx(0.9765267933695341, abs=1e-6)
+    assert bundle.scaler is None
 
 
 def test_batch_inference_rejects_missing_columns():
