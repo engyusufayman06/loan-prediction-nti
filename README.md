@@ -3,13 +3,14 @@
 # ◈ LOAN INTELLIGENCE
 ### NTI Machine Learning Track · End-to-End Loan Status Classification
 
-**From raw applicant data → reproducible ML pipeline → benchmarked models → interactive decision studio → deployable demo.**
+**From raw applicant data → reproducible ML pipeline → engineered features → benchmarked models → interactive decision studio → deployable demo.**
 
 <br>
 
 <img src="https://img.shields.io/badge/Track-Machine%20Learning-06B6D4?style=for-the-badge">
 <img src="https://img.shields.io/badge/Model-XGBoost-7C3AED?style=for-the-badge">
-<img src="https://img.shields.io/badge/Test%20Accuracy-93.28%25-22C55E?style=for-the-badge">
+<img src="https://img.shields.io/badge/Benchmark%20Leader-HistGradientBoosting-22C55E?style=for-the-badge">
+<img src="https://img.shields.io/badge/XGBoost%20Test%20Accuracy-92.97%25-22C55E?style=for-the-badge">
 <img src="https://img.shields.io/badge/App-Streamlit-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white">
 <img src="https://img.shields.io/badge/CI-GitHub%20Actions-2088FF?style=for-the-badge&logo=githubactions&logoColor=white">
 
@@ -24,11 +25,11 @@
 
 ## ⚡ The project in 30 seconds
 
-**Loan Intelligence** is an educational machine-learning system for **binary loan-status classification**. Instead of stopping at a notebook, the project packages the experiment into a small product: a reusable preprocessing/model layer, an interactive Streamlit application, batch CSV inference, model diagnostics, and an in-app technical presentation.
+**Loan Intelligence** is an educational machine-learning system for **binary loan-status classification**. Instead of stopping at a notebook, the project packages the experiment into a small product: a reusable preprocessing/model layer, an interactive Streamlit application, batch CSV inference, model diagnostics, feature engineering, benchmarking, and an in-app technical presentation.
 
-> **Headline result:** XGBoost reached **93.28% held-out test accuracy**, with **0.8700 class-1 precision** and **0.8443 class-1 F1** in the project's nine-model benchmark.
+> **Final notebook benchmark:** HistGradientBoosting reached **93.2874% held-out accuracy** and **0.846545 F1**. The repository's deployable XGBoost model reached **92.9651% accuracy**, **0.855434 class-1 precision**, **0.8225 class-1 recall**, **0.838644 F1**, and **0.975957 ROC-AUC** on the same held-out test split.
 
-This repository is intentionally transparent: metrics, preprocessing decisions, class balancing, trade-offs, limitations, and the path toward production are documented rather than hidden behind a single accuracy number.
+This repository is intentionally transparent: metrics, preprocessing decisions, engineered features, class balancing, model trade-offs, limitations, and the separate hyperparameter-search experiment are documented rather than hidden behind a single accuracy number.
 
 ---
 
@@ -38,10 +39,9 @@ The Streamlit app is organized as a product workspace:
 
 | Workspace | What it does |
 |---|---|
-| **Prediction Studio** | Enter a complete applicant profile and run real XGBoost inference. |
+| **Prediction Studio** | Enter a complete applicant profile and run XGBoost inference. |
 | **Batch Lab** | Upload a CSV, validate its schema, score rows, inspect results, and download predictions. |
-| **Project Presentation** | Navigate a fullscreen, interactive technical deck covering the complete project story. |
-| **Model Insights** | Explore the nine-model benchmark, XGBoost feature importance, confusion matrix, and metric trade-offs. |
+| **Model Insights** | Explore the complete nine-model benchmark, ROC-AUC, confusion matrix, XGBoost feature importance, dataset statistics, and optimization results. |
 | **Team & About** | Project identity, team members, and NTI context. |
 
 ### Product flow
@@ -58,9 +58,16 @@ The Streamlit app is organized as a product workspace:
                                  │
                                  ▼
                  ┌───────────────────────────────┐
+                 │       Feature Engineering      │
+                 │  ratios → risk interaction     │
+                 │       → rental indicator       │
+                 └───────────────┬───────────────┘
+                                 │
+                                 ▼
+                 ┌───────────────────────────────┐
                  │      Reusable ML Core          │
-                 │  cleaning → encoding → scale  │
-                 │       → SMOTETomek → XGB      │
+                 │ cleaning → encoding → SMOTE   │
+                 │      → StandardScaler → XGB    │
                  └───────────────┬───────────────┘
                                  │
                 ┌────────────────┼────────────────┐
@@ -72,7 +79,7 @@ The Streamlit app is organized as a product workspace:
                                  │
                                  ▼
                     ┌─────────────────────────┐
-                    │ Interactive Presentation│
+                    │ Interactive ML Demo     │
                     └─────────────────────────┘
 ```
 
@@ -90,6 +97,7 @@ The system learns a mapping from historical labelled examples to a binary target
 
 - supervised learning;
 - preprocessing and feature representation;
+- engineered domain-style features;
 - class-imbalance handling;
 - model comparison;
 - held-out evaluation;
@@ -106,15 +114,22 @@ This is **not** a production credit-underwriting engine. It is an NTI educationa
 | Property | Value |
 |---|---:|
 | Source file | `loan_data.csv` |
-| Rows after preprocessing | **44,990** |
-| Encoded model features | **19** |
-| Target | `loan_status` |
+| Raw rows | **45,000** |
+| Raw columns | **14** |
+| Rows after final cleaning | **44,988** |
+| Model features | **18** |
+| Train rows | **35,990** |
+| Test rows | **8,998** |
+| Training rows after SMOTE | **55,980** |
 | Original class 0 | **35,000** |
 | Original class 1 | **10,000** |
-| Post-SMOTETomek class 0 | **27,899** |
-| Post-SMOTETomek class 1 | **27,899** |
+| Original class-1 share | **22.22%** |
+| Training class 0 before SMOTE | **27,990** |
+| Training class 1 before SMOTE | **8,000** |
+| Balanced class 0 after SMOTE | **27,990** |
+| Balanced class 1 after SMOTE | **27,990** |
 
-The notebook identifies the dataset source as Kaggle. The exact dataset URL is not recorded in the project files, so this README deliberately does **not** fabricate one.
+The final notebook removes rows with `person_age > 80` or `person_emp_exp > 50`, then engineers five additional features before encoding and splitting.
 
 ### Raw inference schema
 
@@ -140,30 +155,45 @@ person_education
 
 # 03 · ML pipeline
 
+The final notebook uses the following sequence:
+
 ```text
 Raw data
    │
-   ├── remove loan_id
-   │
-   ├── IQR clipping on selected numeric variables
+   ├── remove loan_id when present
    │
    ├── age / employment sanity filters
+   │      age <= 80
+   │      employment experience <= 50
    │
-   ├── binary + ordinal encoding
+   ├── engineer 5 domain-style features
    │
-   ├── one-hot encoding of nominal categories
+   ├── LabelEncoder on object columns
    │
-   ├── 80/20 train-test split (random_state=42)
+   ├── 80/20 stratified train-test split
+   │      random_state=42
    │
-   ├── RobustScaler fitted on training data
+   ├── SMOTE on training split only
    │
-   ├── SMOTETomek on scaled training data
+   ├── StandardScaler
    │
    └── model benchmarking
    │
    ▼
-XGBoost selected from the benchmark
+XGBoost deployable inference model
 ```
+
+### Engineered features
+
+| Feature | Formula / logic |
+|---|---|
+| `income_to_loan_ratio` | `person_income / (loan_amnt + 1)` |
+| `emp_length_to_age_ratio` | `person_emp_exp / (person_age + 1)` |
+| `cred_hist_to_age_ratio` | `cb_person_cred_hist_length / (person_age + 1)` |
+| `high_risk_income_ratio` | `loan_percent_income * loan_int_rate` |
+| `is_renting` | `1` when home ownership is `RENT`, otherwise `0` |
+
+These features increase the final model representation from the raw applicant contract to **18 model features**.
 
 ### Why the pipeline matters
 
@@ -173,43 +203,67 @@ The important engineering step is not simply training XGBoost. The same feature 
 
 # 04 · Model benchmark
 
-| Model | Accuracy | Class-1 Precision | Class-1 Recall | Class-1 F1 |
-|---|---:|---:|---:|---:|
-| Logistic Regression | 86.40% | 0.6344 | **0.9155** | 0.7495 |
-| KNN | 86.52% | 0.6463 | 0.8690 | 0.7413 |
-| Decision Tree | 88.58% | 0.6935 | 0.8710 | 0.7722 |
-| Random Forest | 92.01% | 0.8111 | 0.8350 | 0.8229 |
-| Extra Trees | 91.68% | 0.8000 | 0.8340 | 0.8166 |
-| Gradient Boosting | 90.08% | 0.7311 | 0.8755 | 0.7968 |
-| HistGradientBoosting | 91.71% | 0.7946 | 0.8455 | 0.8193 |
-| SVM | 88.19% | 0.6727 | **0.9125** | 0.7745 |
-| **XGBoost** | **93.28%** | **0.8700** | 0.8200 | **0.8443** |
+The final notebook evaluates **nine classifiers** on the same stratified held-out test set.
+
+| Model | Accuracy | Precision | Recall | F1-Score | ROC-AUC |
+|---|---:|---:|---:|---:|---:|
+| **HistGradientBoosting** | **93.2874%** | 0.860537 | 0.8330 | **0.846545** | **0.976527** |
+| **XGBoost** | **92.9651%** | **0.855434** | 0.8225 | **0.838644** | 0.975957 |
+| Random Forest | 91.1202% | 0.773079 | **0.8500** | 0.809717 | 0.968021 |
+| Extra Trees | 89.7755% | 0.738305 | 0.8365 | 0.784341 | 0.963371 |
+| Gradient Boosting | 89.3532% | 0.717809 | 0.8585 | 0.781876 | 0.962550 |
+| SVM | 87.7639% | 0.671630 | 0.8795 | 0.761637 | 0.950739 |
+| Decision Tree | 88.0862% | 0.703152 | 0.8030 | 0.749767 | 0.853058 |
+| Logistic Regression | 86.1747% | 0.635971 | 0.8840 | 0.739749 | 0.944234 |
+| KNN | 86.2192% | 0.643396 | 0.8525 | 0.733333 | 0.926571 |
 
 ### Selection logic
 
-XGBoost is selected for this project because it leads the benchmark on **test accuracy, class-1 precision, and class-1 F1**.
+The final notebook sorts the benchmark by **F1-Score**, making **HistGradientBoosting** the benchmark leader:
 
-However, it does **not** dominate every metric: Logistic Regression and SVM reach higher class-1 recall. That trade-off is intentionally preserved in the documentation and UI rather than hidden.
+- Accuracy: **93.2874%**
+- Precision: **0.860537**
+- Recall: **0.8330**
+- F1: **0.846545**
+- ROC-AUC: **0.976527**
+
+The repository keeps **XGBoost as the deployable model** because the application, feature-importance presentation, and inference layer are built around the XGBoost contract.
+
+XGBoost itself reports:
+
+- Accuracy: **92.9651%**
+- Precision: **0.855434**
+- Recall: **0.8225**
+- F1: **0.838644**
+- ROC-AUC: **0.975957**
+
+That distinction is deliberate: the README does not pretend that XGBoost won every metric when the final notebook shows HistGradientBoosting slightly ahead.
 
 ---
 
 # 05 · What happens to class imbalance?
 
-Before resampling, the training data contained:
+Before resampling, the final notebook has:
 
 ```text
-Class 0  ████████████████████████████  27,992
-Class 1  ████████                       8,000
+Full dataset
+Class 0  35,000
+Class 1  10,000
+
+Training split
+Class 0  27,990
+Class 1   8,000
 ```
 
-After SMOTETomek:
+After SMOTE:
 
 ```text
-Class 0  ████████████████████████████  27,899
-Class 1  ████████████████████████████  27,899
+Class 0  27,990
+Class 1  27,990
+Total    55,980
 ```
 
-The goal is to make the learner see a more balanced training distribution. Evaluation remains on the held-out test set.
+SMOTE is applied **only to the training split**. The held-out test set remains untouched for evaluation.
 
 ---
 
@@ -220,43 +274,78 @@ The goal is to make the learner see a more balanced training distribution. Evalu
 ```text
                     Predicted
                  0           1
-Actual  0      6753        245
-        1       360       1640
+Actual  0      6720        278
+        1       355       1645
 ```
 
-For class 1, the benchmark reports:
+From this matrix:
 
-- **Precision:** 0.8700
-- **Recall:** 0.8200
-- **F1:** 0.8443
+- True Negatives: **6,720**
+- False Positives: **278**
+- False Negatives: **355**
+- True Positives: **1,645**
+- Error rate: **7.0349%**
+- Correct prediction rate: **92.9651%**
+- False Positive Rate: **3.9769%**
+- False Negative Rate: **17.7500%**
 
-This means the selected model is strong at avoiding false positive class-1 predictions relative to the other benchmarked models, while still missing some true class-1 cases. The right operating point depends on the business cost of false positives versus false negatives.
+For class 1, the final notebook reports:
+
+- **Precision:** 0.855434
+- **Recall:** 0.8225
+- **F1:** 0.838644
+
+The right operating point depends on the business cost of false positives versus false negatives.
 
 ---
 
 # 07 · Generalization & overfitting
 
-The benchmark was not interpreted from training performance alone.
+The final notebook includes a **learning-curve assessment** using three-fold stratified cross-validation and F1 as the scoring metric.
 
-- Decision Tree: **88.58% test accuracy** → lower than XGBoost in the held-out benchmark.
-- XGBoost: **93.28% test accuracy** → the strongest held-out benchmark result.
+The benchmark is therefore interpreted using held-out performance and cross-validation diagnostics rather than training accuracy alone.
 
-The README therefore avoids calling the model “perfect” or “production ready.”
+The project does **not** claim that the model is perfect or production ready.
+
+Known facts from the benchmark:
+
+- HistGradientBoosting: **93.2874%** held-out accuracy.
+- XGBoost: **92.9651%** held-out accuracy.
+- Logistic Regression: **86.1747%** held-out accuracy.
+- The difference between models demonstrates why the project includes a benchmark instead of presenting a single algorithm in isolation.
 
 ---
 
 # 08 · Feature representation
 
-The project encodes:
+The final notebook transforms the raw schema into an **18-feature** model representation.
 
-- gender as binary;
-- previous default history as binary;
-- education as an ordinal representation;
-- home ownership and loan intent using one-hot encoding.
+It uses:
 
-> **Technical note:** ordinal encoding of education introduces an ordering assumption. A future experiment can compare it against one-hot encoding to test whether that assumption affects generalization.
+- LabelEncoder for object/categorical columns;
+- five engineered ratio/indicator features;
+- a stratified 80/20 split;
+- SMOTE for the training split;
+- StandardScaler after resampling.
 
-Also, a near-zero Pearson correlation does **not** automatically mean a feature is useless: correlation captures a particular form of linear association and does not replace model-based analysis.
+### Top XGBoost features
+
+The notebook's global feature-importance chart shows the following top XGBoost features, rounded for presentation:
+
+| Rank | Feature | Relative importance |
+|---:|---|---:|
+| 1 | `previous_loan_defaults_on_file` | **~88.0%** |
+| 2 | `high_risk_income_ratio` | **~1.9%** |
+| 3 | `cb_person_cred_hist_length` | **~1.4%** |
+| 4 | `loan_int_rate` | **~1.0%** |
+| 5 | `person_home_ownership` | **~0.8%** |
+| 6 | `person_education` | **~0.7%** |
+| 7 | `loan_intent` | **~0.7%** |
+| 8 | `person_gender` | **~0.6%** |
+
+> **Important:** model feature importance is a measure of how the fitted model uses a feature. It is not a causal claim that the feature alone determines a loan decision.
+
+The notebook also performs global feature-importance cross-examination across the nine models, using native importance when available and permutation importance where required.
 
 ---
 
@@ -266,7 +355,7 @@ Also, a near-zero Pearson correlation does **not** automatically mean a feature 
 ┌──────────────────────────────────────────────────────┐
 │                 Streamlit Application                │
 │                                                      │
-│  Prediction Studio │ Batch Lab │ Insights │ Deck    │
+│  Prediction Studio │ Batch Lab │ Model Insights     │
 └──────────────────────────────┬───────────────────────┘
                                │
                                ▼
@@ -280,7 +369,8 @@ Also, a near-zero Pearson correlation does **not** automatically mean a feature 
                                │
                                ▼
 ┌──────────────────────────────────────────────────────┐
-│ Data + preprocessing + scaler + SMOTETomek + XGBoost│
+│ feature engineering + LabelEncoder + SMOTE +        │
+│ StandardScaler + XGBoost                             │
 └──────────────────────────────────────────────────────┘
 ```
 
@@ -288,7 +378,7 @@ Also, a near-zero Pearson correlation does **not** automatically mean a feature 
 
 **Notebook = research.**  
 **`src/` = reusable ML logic.**  
-**`app.py` = product/presentation layer.**  
+**`app.py` = product / presentation layer.**  
 **`tests/` = quality contract.**  
 **`docs/` = engineering and model documentation.**
 
@@ -301,28 +391,32 @@ loan-prediction-nti/
 │
 ├── .github/
 │   └── workflows/
-│       └── ci.yml                 # automated checks
+│       ├── ci.yml
+│       └── full-model-benchmark.yml
 │
 ├── .streamlit/
-│   └── config.toml                # application theme/config
+│   └── config.toml
 │
 ├── docs/
-│   ├── architecture.md            # system architecture
-│   ├── model-card.md              # model documentation
-│   └── quickstart.md              # deployment/local quickstart
+│   ├── architecture.md
+│   └── model-card.md
 │
 ├── src/
 │   ├── __init__.py
-│   └── model.py                   # training + inference core
+│   └── model.py
 │
 ├── tests/
-│   └── test_model.py              # ML contract tests
+│   └── test_model.py
 │
-├── app.py                         # interactive product UI
-├── loan.ipynb                     # original research notebook
-├── loan_data.csv                  # project dataset
+├── scripts/
+│   └── full_model_benchmark.py
+│
+├── app.py
+├── Loan_Intelligence_Colab.ipynb
+├── demo_test.csv
+├── loan_data.csv
 ├── requirements.txt
-├── CONTRIBUTING.md
+├── runtime.txt
 ├── .gitignore
 └── README.md
 ```
@@ -333,7 +427,7 @@ loan-prediction-nti/
 
 ### Prediction Studio
 
-Enter the full applicant input contract. Numeric fields expose dataset-derived bounds, then the application sends the row through the same reusable preprocessing/model layer.
+Enter the complete 13-field applicant input contract. The application automatically creates the five engineered features used by the final notebook and sends the row through the reusable preprocessing/model layer.
 
 ### Batch Lab
 
@@ -344,6 +438,8 @@ Upload
      ↓
 Schema validation
      ↓
+Feature engineering
+     ↓
 Batch inference
      ↓
 Predictions + probabilities
@@ -353,19 +449,22 @@ Optional labelled-data evaluation
 Download scored CSV
 ```
 
-### Project Presentation
-
-The application contains an interactive technical deck with fullscreen presentation mode, slide navigation, keyboard controls, and a narrative that follows the actual project workflow.
-
 ### Model Insights
 
 The application surfaces:
 
-- benchmark metrics;
-- confusion matrix;
-- XGBoost feature importance;
-- class-1 precision/recall trade-off;
-- generalization discussion.
+- all nine benchmark models;
+- Accuracy, Precision, Recall, F1 and ROC-AUC;
+- dataset and split statistics;
+- SMOTE balancing statistics;
+- XGBoost confusion matrix;
+- false-positive / false-negative rates;
+- top XGBoost features;
+- the notebook's separate hyperparameter-search result.
+
+### Demo CSV
+
+`demo_test.csv` contains six valid applicant records covering different education, income, home ownership, loan intent, credit-score, and previous-default scenarios.
 
 ---
 
@@ -396,7 +495,11 @@ Run tests:
 python -m pytest -q
 ```
 
-More details are available in [`docs/quickstart.md`](docs/quickstart.md).
+Run the benchmark script:
+
+```bash
+python scripts/full_model_benchmark.py
+```
 
 ---
 
@@ -424,11 +527,14 @@ This project goes beyond a notebook by including:
 - a typed `LoanModelBundle` abstraction;
 - single-row and batch inference paths;
 - input/schema validation;
+- deterministic feature engineering;
+- class balancing on the training split only;
 - unit tests;
 - GitHub Actions CI;
 - dedicated architecture documentation;
 - a model card;
-- deployment quickstart;
+- an explicit benchmark;
+- a demo CSV;
 - explicit limitations and responsible-use guidance.
 
 ---
@@ -442,12 +548,15 @@ It has not been validated as a real lender's underwriting model and should not b
 Known limitations include:
 
 - the dataset may not represent a real lender's current population;
+- categorical LabelEncoder values are learned from the supplied dataset;
 - no fairness audit or subgroup performance analysis has been completed;
 - probability calibration has not been established for real-world approval odds;
 - dataset shift and production drift are not monitored;
 - the benchmark does not establish causal relationships;
-- class balancing changes the training distribution;
-- the current preprocessing implementation preserves the notebook's IQR-bound workflow and should be hardened further for strict production validation.
+- SMOTE changes the training distribution;
+- the final notebook's exploratory preprocessing and benchmark are educational rather than a regulated credit-risk methodology;
+- the top-feature chart is model attribution, not causal inference;
+- the separate hyperparameter-search experiment is scored by F1 and is not automatically promoted to the deployed model.
 
 ---
 
@@ -459,6 +568,7 @@ CURRENT
   ├── Interactive Streamlit application
   ├── Reusable ML core
   ├── Batch inference
+  ├── Engineered features
   └── Automated tests / CI
   │
   ▼
@@ -502,13 +612,3 @@ PRODUCTION MATURITY
 This project was developed in the context of the **National Telecommunication Institute (NTI) Machine Learning Track**.
 
 **Official NTI:** https://www.nti.sci.eg/
-
----
-
-<div align="center">
-
-### Built to demonstrate the full ML journey — not just the final score.
-
-**Research → Engineering → Evaluation → Product → Deployment**
-
-</div>
