@@ -1,0 +1,6 @@
+loan_id,person_age,person_income,person_home_ownership,person_emp_exp,loan_intent,loan_amnt,loan_int_rate,loan_percent_income,cb_person_cred_hist_length,credit_score,previous_loan_defaults_on_file,person_gender,person_education
+DEMO001,24,42000,RENT,3,EDUCATION,8000,10.5,0.19,3,640,No,male,Bachelor
+DEMO002,31,65000,MORTGAGE,8,HOMEIMPROVEMENT,15000,8.2,0.23,7,720,No,female,Master
+DEMO003,45,90000,OWN,20,DEBTCONSOLIDATION,22000,11.0,0.24,15,690,Yes,male,Associate
+DEMO004,28,50000,RENT,5,MEDICAL,12000,13.5,0.24,5,610,No,female,Bachelor
+DEMO005,38,110000,OWN,14,VENTURE,18000,7.8,0.16,11,760,No,male,Doctorate
