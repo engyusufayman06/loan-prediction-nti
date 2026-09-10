@@ -1,102 +1,160 @@
+import streamlit as st
 from pathlib import Path
 
-import streamlit as st
+from src.model import train_model, predict_one
 
-from src.model import MODEL_INPUT_COLUMNS, predict_one, train_model
+# ---------------------------------------------------------
+# Simple Loan Intelligence Demo
+# ---------------------------------------------------------
 
-ROOT = Path(__file__).resolve().parent
-DATA_PATH = ROOT / "loan_data.csv"
+st.set_page_config(
+    page_title="Loan Intelligence",
+    page_icon="🤖",
+    layout="centered",
+)
 
-st.set_page_config(page_title="Loan Prediction", page_icon="💳", layout="centered")
+st.title("🤖 Loan Intelligence")
+st.caption("AI-Powered Credit Decision Demo | NTI Machine Learning Track")
 
-st.title("💳 Loan Prediction")
-st.caption("Simple XGBoost model demo")
-
-if not DATA_PATH.exists():
-    st.error("loan_data.csv was not found in the repository.")
-    st.stop()
-
-
-@st.cache_resource(show_spinner=False)
-def load_model(data_path: str):
-    return train_model(data_path)
+DATA_PATH = Path("loan_data.csv")
 
 
-st.info("Enter the applicant data, then click Predict. The model is trained once and cached.")
+@st.cache_resource
+def load_model():
+    if not DATA_PATH.exists():
+        raise FileNotFoundError(
+            "loan_data.csv was not found. Put it in the same folder as app.py."
+        )
+    bundle, metrics = train_model(str(DATA_PATH))
+    return bundle, metrics
 
-st.subheader("Applicant Information")
 
-col1, col2 = st.columns(2)
+st.info(
+    "Enter an applicant's information below and let the trained XGBoost model "
+    "make a prediction."
+)
 
-with col1:
-    age = st.number_input("Age", min_value=18, max_value=80, value=30, step=1)
-    income = st.number_input("Annual Income", min_value=0.0, value=60000.0, step=1000.0)
-    home = st.selectbox("Home Ownership", ["RENT", "OWN", "MORTGAGE", "OTHER"])
-    emp_exp = st.number_input("Employment Experience (years)", min_value=0, max_value=60, value=5, step=1)
-    intent = st.selectbox(
-        "Loan Intent",
-        ["PERSONAL", "EDUCATION", "MEDICAL", "VENTURE", "HOMEIMPROVEMENT", "DEBTCONSOLIDATION"],
+with st.form("loan_form"):
+    st.subheader("Applicant Information")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        age = st.number_input(
+            "Age", min_value=18.0, max_value=80.0, value=30.0, step=1.0
+        )
+        income = st.number_input(
+            "Annual Income", min_value=0.0, value=50000.0, step=1000.0
+        )
+        home = st.selectbox(
+            "Home Ownership", ["RENT", "OWN", "MORTGAGE", "OTHER"]
+        )
+        employment = st.number_input(
+            "Employment Experience (years)",
+            min_value=0.0,
+            max_value=60.0,
+            value=5.0,
+            step=1.0,
+        )
+        education = st.selectbox(
+            "Education",
+            ["High School", "Associate", "Bachelor", "Master", "Doctorate"],
+        )
+        gender = st.selectbox("Gender", ["male", "female"])
+        defaults = st.selectbox("Previous Loan Defaults", ["No", "Yes"])
+
+    with col2:
+        intent = st.selectbox(
+            "Loan Intent",
+            [
+                "PERSONAL",
+                "EDUCATION",
+                "MEDICAL",
+                "VENTURE",
+                "HOMEIMPROVEMENT",
+                "DEBTCONSOLIDATION",
+            ],
+        )
+        loan_amount = st.number_input(
+            "Loan Amount", min_value=0.0, value=10000.0, step=500.0
+        )
+        interest_rate = st.number_input(
+            "Loan Interest Rate (%)",
+            min_value=0.0,
+            max_value=100.0,
+            value=10.0,
+            step=0.1,
+        )
+        loan_percent_income = st.number_input(
+            "Loan Percent of Income",
+            min_value=0.0,
+            max_value=1.0,
+            value=0.20,
+            step=0.01,
+        )
+        credit_history = st.number_input(
+            "Credit History Length (years)",
+            min_value=0.0,
+            max_value=60.0,
+            value=5.0,
+            step=1.0,
+        )
+        credit_score = st.number_input(
+            "Credit Score",
+            min_value=0.0,
+            max_value=900.0,
+            value=650.0,
+            step=1.0,
+        )
+
+    submitted = st.form_submit_button(
+        "🔮 Predict Loan Decision", use_container_width=True
     )
-    loan_amount = st.number_input("Loan Amount", min_value=0.0, value=10000.0, step=500.0)
-    interest_rate = st.number_input("Interest Rate (%)", min_value=0.0, value=12.0, step=0.1)
 
-with col2:
-    loan_percent_income = st.number_input(
-        "Loan / Income Ratio", min_value=0.0, max_value=1.0, value=0.17, step=0.01
-    )
-    credit_history = st.number_input(
-        "Credit History Length (years)", min_value=0.0, max_value=30.0, value=5.0, step=1.0
-    )
-    credit_score = st.number_input("Credit Score", min_value=300, max_value=850, value=700, step=1)
-    previous_default = st.selectbox("Previous Loan Defaults", ["No", "Yes"])
-    gender = st.selectbox("Gender", ["male", "female"])
-    education = st.selectbox(
-        "Education",
-        ["High School", "Associate", "Bachelor", "Master", "Doctorate"],
-    )
 
-applicant = {
-    "person_age": age,
-    "person_income": income,
-    "person_home_ownership": home,
-    "person_emp_exp": emp_exp,
-    "loan_intent": intent,
-    "loan_amnt": loan_amount,
-    "loan_int_rate": interest_rate,
-    "loan_percent_income": loan_percent_income,
-    "cb_person_cred_hist_length": credit_history,
-    "credit_score": credit_score,
-    "previous_loan_defaults_on_file": previous_default,
-    "person_gender": gender,
-    "person_education": education,
-}
-
-st.divider()
-
-if st.button("🔮 Predict Loan Status", type="primary", use_container_width=True):
+if submitted:
     try:
-        with st.spinner("Training the XGBoost model on loan_data.csv (first run only)..."):
-            bundle, metrics = load_model(str(DATA_PATH))
+        with st.spinner("AI model is analyzing the applicant..."):
+            bundle, metrics = load_model()
 
-        result = predict_one(bundle, applicant)
+            applicant = {
+                "person_age": float(age),
+                "person_income": float(income),
+                "person_home_ownership": home,
+                "person_emp_exp": float(employment),
+                "loan_intent": intent,
+                "loan_amnt": float(loan_amount),
+                "loan_int_rate": float(interest_rate),
+                "loan_percent_income": float(loan_percent_income),
+                "cb_person_cred_hist_length": float(credit_history),
+                "credit_score": float(credit_score),
+                "previous_loan_defaults_on_file": defaults,
+                "person_gender": gender,
+                "person_education": education,
+            }
+
+            result = predict_one(bundle, applicant)
+
+        st.divider()
 
         if result["prediction"] == 1:
-            st.success("### ✅ Loan Status: Approved")
+            st.success("### ✅ LOAN APPROVED")
         else:
-            st.error("### ❌ Loan Status: Rejected")
+            st.error("### ❌ LOAN REJECTED")
 
         c1, c2 = st.columns(2)
-        c1.metric("Approval Probability", f"{result['approval_probability']:.2%}")
-        c2.metric("Rejection Probability", f"{result['rejection_probability']:.2%}")
+        with c1:
+            st.metric("Approval Score", f'{result["approval_probability"] * 100:.2f}%')
+        with c2:
+            st.metric("Rejection Score", f'{result["rejection_probability"] * 100:.2f}%')
 
-        with st.expander("Model details"):
-            st.write(f"Test Accuracy: {metrics['accuracy']:.2%}")
-            st.write(f"Precision: {metrics['precision']:.4f}")
-            st.write(f"Recall: {metrics['recall']:.4f}")
-            st.write(f"F1 Score: {metrics['f1']:.4f}")
+        with st.expander("Model Information"):
+            st.write("**Model:** XGBoost")
+            st.write(f'**Test Accuracy:** {metrics["accuracy"] * 100:.2f}%')
+            st.caption(
+                "These probabilities are model scores, not guaranteed real-world approval odds."
+            )
 
-    except Exception as exc:
-        st.error("The model could not be loaded or trained.")
-        st.exception(exc)
-
-st.caption("Educational ML demo — not a real lending decision system.")
+    except Exception as e:
+        st.error("The demo could not run.")
+        st.exception(e)
