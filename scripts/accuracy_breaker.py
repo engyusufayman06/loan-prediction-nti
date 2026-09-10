@@ -81,3 +81,5 @@ def run():
 
 if __name__ == "__main__":
     run()
+
+# Trigger benchmark refresh after workflow trigger configuration update.
