@@ -2,17 +2,17 @@
 
 ## Model
 
-**Primary algorithm:** XGBoost classifier  
+**Primary algorithm:** HistGradientBoosting classifier  
 **Task:** Binary classification of `loan_status`  
 **Benchmark leader:** HistGradientBoosting  
-**Deployable repository model:** XGBoost
+**Deployable repository model:** HistGradientBoosting
 
 ### Final notebook benchmark
 
 | Model | Accuracy | Precision 1 | Recall 1 | F1 1 | ROC-AUC |
 |---|---:|---:|---:|---:|---:|
-| HistGradientBoosting | **93.2874%** | 0.860537 | 0.8330 | **0.846545** | **0.976527** |
-| XGBoost | **92.9651%** | **0.855434** | 0.8225 | **0.838644** | 0.975957 |
+| HistGradientBoosting | **93.2874%** | **0.860537** | 0.8330 | **0.846545** | **0.976527** |
+| XGBoost | 92.9651% | 0.855434 | 0.8225 | 0.838644 | 0.975957 |
 | Random Forest | 91.1202% | 0.773079 | **0.8500** | 0.809717 | 0.968021 |
 | Extra Trees | 89.7755% | 0.738305 | 0.8365 | 0.784341 | 0.963371 |
 | Gradient Boosting | 89.3532% | 0.717809 | 0.8585 | 0.781876 | 0.962550 |
@@ -23,7 +23,7 @@
 
 ## Intended use
 
-Educational demonstration for the NTI Machine Learning track and portfolio presentation. The model is useful for explaining the mechanics of a classification workflow, feature engineering, class balancing, and comparing candidate algorithms on the supplied dataset.
+Educational demonstration for the NTI Machine Learning track and portfolio presentation. The model explains classification, feature engineering, class balancing, benchmarking, model diagnostics, feature attribution, and reusable inference.
 
 ## Out of scope
 
@@ -59,55 +59,77 @@ This model must not be treated as an autonomous credit-underwriting engine. It h
 5. Label-encode object columns.
 6. Split into stratified 80/20 train/test sets.
 7. Apply `SMOTE(random_state=42)` to the training split only.
-8. Fit `StandardScaler` for the notebook's scale-sensitive model paths.
-9. Train XGBoost on the **unscaled** engineered/SMOTE representation, matching the notebook's tree-model path.
+8. Train HistGradientBoosting on the unscaled engineered representation.
+9. Evaluate on the untouched held-out test split.
 
-## XGBoost diagnostics
+## HistGradientBoosting diagnostics
 
-The final notebook's XGBoost benchmark gives:
+The final notebook's HistGradientBoosting benchmark gives:
 
-- Accuracy: **92.9651%**
-- Precision: **0.855434**
-- Recall: **0.8225**
-- F1: **0.838644**
-- ROC-AUC: **0.975957**
+- Accuracy: **93.2874%**
+- Precision: **0.860537**
+- Recall: **0.8330**
+- F1: **0.846545**
+- ROC-AUC: **0.976527**
 
 Confusion matrix:
 
 ```text
-[[6720, 278],
- [ 355, 1645]]
+[[6728, 270],
+ [ 334, 1666]]
 ```
 
 This corresponds to:
 
-- TN = 6,720
-- FP = 278
-- FN = 355
-- TP = 1,645
-- FPR ≈ 3.98%
-- FNR = 17.75%
+- TN = **6,728**
+- FP = **270**
+- FN = **334**
+- TP = **1,666**
+- Error rate = **6.7126%**
+- Correct prediction rate = **93.2874%**
+- FPR ≈ **3.8582%**
+- FNR = **16.7000%**
 
-## Top XGBoost features
+### Full classification report
 
-The notebook's global XGBoost feature-importance chart shows the following leading features, rounded for presentation:
+| Class | Precision | Recall | F1 | Support |
+|---|---:|---:|---:|---:|
+| Rejected (0) | 0.952705 | 0.961418 | 0.957041 | 6,998 |
+| Approved (1) | 0.860537 | 0.833000 | 0.846545 | 2,000 |
+| Macro avg | 0.906621 | 0.897209 | 0.901793 | 8,998 |
+| Weighted avg | 0.932218 | 0.932874 | 0.932481 | 8,998 |
+
+## Top HistGradientBoosting features
+
+HistGradientBoosting does not expose native `feature_importances_`, so the notebook's global cross-model analysis uses permutation importance. The values below are normalized relative importance percentages from five repeats on the first 1,000 rows of the held-out test set.
 
 | Rank | Feature | Relative importance |
 |---:|---|---:|
-| 1 | `previous_loan_defaults_on_file` | ~88.0% |
-| 2 | `high_risk_income_ratio` | ~1.9% |
-| 3 | `cb_person_cred_hist_length` | ~1.4% |
-| 4 | `loan_int_rate` | ~1.0% |
-| 5 | `person_home_ownership` | ~0.8% |
-| 6 | `person_education` | ~0.7% |
-| 7 | `loan_intent` | ~0.7% |
-| 8 | `person_gender` | ~0.6% |
+| 1 | `previous_loan_defaults_on_file` | **31.3320%** |
+| 2 | `person_income` | **11.5035%** |
+| 3 | `income_to_loan_ratio` | **9.4854%** |
+| 4 | `person_emp_exp` | **8.5267%** |
+| 5 | `loan_int_rate` | **8.4258%** |
+| 6 | `emp_length_to_age_ratio` | **6.9122%** |
+| 7 | `person_home_ownership` | **6.8618%** |
+| 8 | `loan_intent` | **3.9354%** |
+| 9 | `cb_person_cred_hist_length` | **2.6236%** |
+| 10 | `credit_score` | **2.3209%** |
 
-Feature importance is model attribution, not a causal explanation.
+Feature importance is model attribution, not a causal explanation or a standalone measure of creditworthiness.
 
-## Hyperparameter optimization experiment
+## Model configuration
 
-The notebook also runs a separate `RandomizedSearchCV` experiment over XGBoost:
+```text
+HistGradientBoostingClassifier(
+    max_iter=300,
+    random_state=42
+)
+```
+
+## Separate XGBoost optimization experiment
+
+The source notebook also contains a separate `RandomizedSearchCV` experiment for XGBoost. It remains documented because it is part of the research notebook, but it is not the deployable repository model.
 
 ```text
 n_estimators       = 250
@@ -118,14 +140,12 @@ colsample_bytree    = 0.80
 gamma               = 0.00
 ```
 
-The notebook reports the resulting test classification report at approximately:
+Reported secondary experiment:
 
 - Accuracy: **91%**
 - Precision (class 1): **0.77**
 - Recall (class 1): **0.86**
 - F1 (class 1): **0.81**
-
-This experiment is retained as a documented research result and is not silently promoted over the stronger benchmark XGBoost result.
 
 ## Limitations
 
@@ -137,4 +157,4 @@ This experiment is retained as a documented research result and is not silently 
 6. The model has not been calibrated for reliable real-world probability estimates.
 7. The benchmark does not establish causal relationships.
 8. No model-drift monitoring or retraining policy exists yet.
-9. The feature-importance chart should not be interpreted as a causal ranking of creditworthiness.
+9. The feature-importance analysis should not be interpreted as a causal ranking of creditworthiness.
