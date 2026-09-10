@@ -1,23 +1,25 @@
 import streamlit as st
 from pathlib import Path
 import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
 
 from src.model import train_model, predict_one, predict_batch
 
 st.set_page_config(page_title="Loan Intelligence", page_icon=None, layout="wide")
 
+# -----------------------------------------------------------------------------
+# Light UI
+# -----------------------------------------------------------------------------
 st.markdown("""
 <style>
     .stApp { background: #ffffff; color: #18324a; }
-    .block-container { max-width: 1180px; padding-top: 2rem; padding-bottom: 4rem; }
+    .block-container { max-width: 1220px; padding-top: 2rem; padding-bottom: 4rem; }
     .main-title { font-size: 2.55rem; font-weight: 750; color: #18324a; letter-spacing: -0.03em; margin-bottom: .15rem; }
     .sub-title { color: #6b7b8c; font-size: 1rem; margin-bottom: 1.8rem; }
     .section-note { background: #f5f8fb; border: 1px solid #e1e8ef; border-radius: 12px; padding: .8rem 1rem; color: #526273; }
-    .value-pill { display: inline-block; background: #edf4f8; border: 1px solid #d8e6ee; color: #285a76; border-radius: 8px; padding: 3px 9px; font-size: .82rem; font-weight: 650; margin-top: -4px; margin-bottom: 8px; }
-    .insight-card { background: #f8fafc; border: 1px solid #e2e8ef; border-radius: 14px; padding: 1rem 1.1rem; min-height: 92px; }
-    .insight-label { color: #6b7b8c; font-size: .82rem; }
-    .insight-value { color: #18324a; font-size: 1.45rem; font-weight: 750; margin-top: .15rem; }
-    div[data-testid="stMetric"] { background: #f7f9fb; border: 1px solid #e2e8ef; border-radius: 13px; padding: .75rem 1rem; }
+    .value-pill { display: inline-block; background: #eef5ff; border: 1px solid #d7e6fb; color: #245a9a; border-radius: 8px; padding: 3px 9px; font-size: .82rem; font-weight: 650; margin-top: -4px; margin-bottom: 8px; }
+    div[data-testid="stMetric"] { background: #f8fafc; border: 1px solid #e2e8ef; border-radius: 13px; padding: .75rem 1rem; }
     div[data-baseweb="select"] > div { background: #ffffff; border-color: #d5dee7; }
     .stButton > button, .stFormSubmitButton > button { background: #2f6f8f; color: #ffffff; border: 0; border-radius: 9px; font-weight: 650; min-height: 2.7rem; }
     .stButton > button:hover, .stFormSubmitButton > button:hover { background: #255b75; color: #ffffff; }
@@ -44,7 +46,9 @@ def slider_with_value(label, min_value, max_value, value, step, formatter, help_
     return selected
 
 
-# Benchmark results from the completed model experiments notebook.
+# -----------------------------------------------------------------------------
+# Research results from the completed model experiments.
+# -----------------------------------------------------------------------------
 BENCHMARK = pd.DataFrame({
     "Accuracy": [0.9328, 0.9201, 0.9171, 0.9168, 0.9008, 0.8858, 0.8819, 0.8652, 0.8640],
     "Precision": [0.8700, 0.8111, 0.7946, 0.8000, 0.7311, 0.6935, 0.6727, 0.6463, 0.6344],
@@ -75,8 +79,40 @@ CONFUSION_MATRIX = pd.DataFrame(
 )
 
 
+def chart_style(ax):
+    ax.set_facecolor("white")
+    ax.grid(axis="x", alpha=0.16)
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    ax.spines["left"].set_color("#d9e2ea")
+    ax.spines["bottom"].set_color("#d9e2ea")
+    ax.tick_params(colors="#526273")
+
+
+def horizontal_metric_chart(data, title, xlabel="Score (%)"):
+    fig, ax = plt.subplots(figsize=(10, 5.2))
+    vals = data.iloc[:, 0].values
+    names = data.index.tolist()
+    y = np.arange(len(names))
+    ax.barh(y, vals, height=0.62)
+    ax.set_yticks(y)
+    ax.set_yticklabels(names)
+    ax.invert_yaxis()
+    ax.set_xlabel(xlabel, color="#526273")
+    ax.set_title(title, loc="left", fontsize=14, fontweight="bold", color="#18324a")
+    ax.set_xlim(0, max(100, float(vals.max()) * 1.12))
+    for i, v in enumerate(vals):
+        ax.text(v + 1, i, f"{v:.1f}", va="center", fontsize=9, color="#526273")
+    chart_style(ax)
+    fig.tight_layout()
+    return fig
+
+
 tab1, tab2, tab3 = st.tabs(["Single Applicant", "CSV Analysis", "Model Insights"])
 
+# -----------------------------------------------------------------------------
+# Single applicant
+# -----------------------------------------------------------------------------
 with tab1:
     st.subheader("Applicant profile")
     st.markdown('<div class="section-note">Choose an exact value by moving each slider. The selected value is sent directly to the model.</div>', unsafe_allow_html=True)
@@ -84,7 +120,6 @@ with tab1:
 
     with st.form("loan_form"):
         left, right = st.columns(2, gap="large")
-
         with left:
             age = slider_with_value("Age", 18, 80, 28, 1, lambda x: f"{x} years", "Applicant age.")
             income = slider_with_value("Annual Income ($)", 8000, 720000, 60000, 1000, lambda x: f"${x:,.0f}", "Annual income.")
@@ -92,7 +127,6 @@ with tab1:
             loan_amount = slider_with_value("Loan Amount ($)", 500, 35000, 12000, 100, lambda x: f"${x:,.0f}", "Requested loan amount.")
             interest = slider_with_value("Interest Rate (%)", 5.0, 20.0, 10.0, 0.1, lambda x: f"{x:.1f}%", "Loan interest rate.")
             loan_income = slider_with_value("Loan Percent of Income", 0.01, 0.83, 0.20, 0.01, lambda x: f"{x:.0%}", "Loan amount as a fraction of annual income.")
-
         with right:
             credit_history = slider_with_value("Credit History Length (years)", 2, 30, 7, 1, lambda x: f"{x} years", "Length of credit history.")
             credit_score = slider_with_value("Credit Score", 390, 850, 680, 1, lambda x: f"{x}", "Credit score.")
@@ -101,7 +135,6 @@ with tab1:
             gender = st.selectbox("Gender", ["male", "female"])
             defaults = st.selectbox("Previous Loan Defaults", ["No", "Yes"])
             intent = st.selectbox("Loan Intent", ["PERSONAL", "EDUCATION", "MEDICAL", "VENTURE", "HOMEIMPROVEMENT", "DEBTCONSOLIDATION"])
-
         submitted = st.form_submit_button("Predict Loan Decision", use_container_width=True)
 
     if submitted:
@@ -130,7 +163,6 @@ with tab1:
                 st.bar_chart(score_df, horizontal=True, height=250)
                 st.markdown("#### Approval score")
                 st.progress(float(result["approval_probability"]))
-
             with profile_col:
                 st.markdown("#### Applicant snapshot")
                 snapshot = pd.DataFrame({
@@ -146,19 +178,20 @@ with tab1:
             p3.metric("Recall", f'{metrics["recall"] * 100:.2f}%')
             p4.metric("F1 Score", f'{metrics["f1"] * 100:.2f}%')
 
-            st.markdown("#### Where this model learned from")
-            st.caption("These are the model's feature-importance values from XGBoost. They describe model contribution, not causation.")
-            top_features = FEATURE_IMPORTANCE.head(8).sort_values("Importance")
-            st.bar_chart(top_features, horizontal=True, height=300)
-
+            st.markdown("#### Global feature importance")
+            st.caption("This is the trained XGBoost model's global feature importance. It is not a per-applicant explanation and does not imply causation.")
+            st.pyplot(horizontal_metric_chart(FEATURE_IMPORTANCE.head(8).sort_values("Importance") * 100, "Top model features"), clear_figure=True)
             st.caption("Displayed probabilities are model scores from XGBoost, not guaranteed real-world approval odds.")
         except Exception as e:
             st.error("The prediction could not be completed.")
             st.exception(e)
 
+# -----------------------------------------------------------------------------
+# CSV analysis
+# -----------------------------------------------------------------------------
 with tab2:
     st.subheader("CSV analysis dashboard")
-    st.markdown('<div class="section-note">Upload applicant records, run the trained inference pipeline, explore the model-related charts, and download the predictions.</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-note">Upload applicant records, run the trained inference pipeline, explore model-related statistics, and download the predictions.</div>', unsafe_allow_html=True)
     st.write("")
 
     sample_path = Path("demo_test.csv")
@@ -166,7 +199,6 @@ with tab2:
         st.download_button("Download Test CSV", data=sample_path.read_bytes(), file_name="loan_prediction_test.csv", mime="text/csv")
 
     uploaded = st.file_uploader("Upload applicant CSV", type=["csv"])
-
     if uploaded is not None:
         try:
             df = pd.read_csv(uploaded)
@@ -227,53 +259,195 @@ with tab2:
             st.error("Could not analyze this CSV. Make sure it contains the required model input columns.")
             st.exception(e)
 
+# -----------------------------------------------------------------------------
+# Model insights
+# -----------------------------------------------------------------------------
 with tab3:
     st.subheader("Model insights")
-    st.markdown('<div class="section-note">Research-backed diagnostics from the completed model experiments. These charts describe the trained model and its held-out test performance.</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-note">A deeper analytics dashboard built only from the completed model experiments and the held-out test results.</div>', unsafe_allow_html=True)
     st.write("")
 
-    a, b, c, d = st.columns(4)
-    a.metric("Dataset", "45,000 rows")
+    # Executive metrics
+    best_model = BENCHMARK["Accuracy"].idxmax()
+    best_accuracy = BENCHMARK.loc[best_model, "Accuracy"]
+    runner_up = BENCHMARK["Accuracy"].sort_values(ascending=False).iloc[1]
+    accuracy_gap = best_accuracy - runner_up
+    a, b, c, d, e = st.columns(5)
+    a.metric("Dataset", "45,000")
     b.metric("Encoded Features", "19")
-    c.metric("Models Benchmarked", "9")
-    d.metric("Best Test Accuracy", "93.28%")
+    c.metric("Models", "9")
+    d.metric("Best Accuracy", f"{best_accuracy * 100:.2f}%")
+    e.metric("Best vs Runner-up", f"+{accuracy_gap * 100:.2f} pp")
 
+    # Dataset / preprocessing statistics
     st.divider()
-    st.markdown("### 1. Model benchmark")
+    st.markdown("### Dataset and training pipeline")
+    p1, p2, p3, p4 = st.columns(4)
+    p1.metric("Original rows", "45,000")
+    p2.metric("Training rows", "35,992")
+    p3.metric("After SMOTETomek", "55,798")
+    p4.metric("Held-out test rows", "8,998")
+
+    pipeline_counts = pd.DataFrame({"Rows": [45000, 35992, 55798, 8998]}, index=["Original dataset", "Train split", "Balanced train", "Test split"])
+    st.bar_chart(pipeline_counts, height=300)
+    st.caption("The balanced training count is larger than the original training count because SMOTETomek was applied only to the training data. The test set remains held out.")
+
+    # Class balance
+    class_col, class_stats = st.columns([1.35, 1], gap="large")
+    with class_col:
+        st.markdown("### Class balance")
+        class_distribution = pd.Series([35000, 10000], index=["Rejected (0)", "Approved (1)"], name="Applicants")
+        st.bar_chart(class_distribution, height=300)
+    with class_stats:
+        st.markdown("### Class statistics")
+        st.metric("Rejected share", "77.78%")
+        st.metric("Approved share", "22.22%")
+        st.metric("Class ratio", "3.50 : 1")
+        st.caption("This imbalance is one reason the workflow evaluates precision, recall and F1 rather than accuracy alone.")
+
+    # Benchmark dashboard
+    st.divider()
+    st.markdown("### Model benchmark leaderboard")
     st.caption("All nine models were evaluated on the same held-out test set.")
-    benchmark_pct = BENCHMARK * 100
-    st.bar_chart(benchmark_pct[["Accuracy"]], horizontal=True, height=430)
+    ranked = BENCHMARK.sort_values("Accuracy", ascending=False)
+    st.pyplot(horizontal_metric_chart(ranked[["Accuracy"]] * 100, "Test accuracy by model"), clear_figure=True)
 
-    st.markdown("#### Precision, Recall and F1 comparison")
-    st.bar_chart(benchmark_pct[["Precision", "Recall", "F1 Score"]], height=430)
-
-    st.divider()
     left, right = st.columns(2, gap="large")
     with left:
-        st.markdown("### 2. XGBoost confusion matrix")
+        st.markdown("#### Precision / Recall / F1")
+        st.bar_chart((ranked[["Precision", "Recall", "F1 Score"]] * 100), height=430)
+    with right:
+        st.markdown("#### Full benchmark table")
+        display_benchmark = (ranked * 100).round(2)
+        st.dataframe(display_benchmark, use_container_width=True)
+
+    # Metric heatmap
+    st.markdown("#### Benchmark metric heatmap")
+    fig, ax = plt.subplots(figsize=(11, 5.2))
+    heat = ranked[["Accuracy", "Precision", "Recall", "F1 Score"]].values * 100
+    im = ax.imshow(heat, aspect="auto")
+    ax.set_xticks(range(4), ["Accuracy", "Precision", "Recall", "F1 Score"])
+    ax.set_yticks(range(len(ranked)), ranked.index)
+    for i in range(heat.shape[0]):
+        for j in range(heat.shape[1]):
+            ax.text(j, i, f"{heat[i, j]:.1f}", ha="center", va="center", fontsize=8)
+    ax.set_title("Model performance matrix", loc="left", fontsize=14, fontweight="bold", color="#18324a")
+    fig.colorbar(im, ax=ax, fraction=0.025, pad=0.02, label="Score (%)")
+    fig.tight_layout()
+    st.pyplot(fig, clear_figure=True)
+
+    # Precision-recall tradeoff
+    st.markdown("#### Precision vs Recall trade-off")
+    fig, ax = plt.subplots(figsize=(10, 5.2))
+    ax.scatter(BENCHMARK["Recall"] * 100, BENCHMARK["Precision"] * 100, s=80)
+    for name, row in BENCHMARK.iterrows():
+        ax.annotate(name, (row["Recall"] * 100, row["Precision"] * 100), xytext=(6, 5), textcoords="offset points", fontsize=8, color="#526273")
+    ax.set_xlabel("Recall (%)")
+    ax.set_ylabel("Precision (%)")
+    ax.set_title("Precision–Recall trade-off across models", loc="left", fontsize=14, fontweight="bold", color="#18324a")
+    chart_style(ax)
+    fig.tight_layout()
+    st.pyplot(fig, clear_figure=True)
+
+    # XGBoost diagnostics
+    st.divider()
+    st.markdown("### XGBoost diagnostic dashboard")
+    xgb_acc = 0.9328
+    xgb_precision = 0.8700
+    xgb_recall = 0.8200
+    xgb_f1 = 0.8443
+    m1, m2, m3, m4 = st.columns(4)
+    m1.metric("Accuracy", "93.28%")
+    m2.metric("Precision", "87.00%")
+    m3.metric("Recall", "82.00%")
+    m4.metric("F1 Score", "84.43%")
+
+    xgb_metrics = pd.Series([xgb_acc, xgb_precision, xgb_recall, xgb_f1], index=["Accuracy", "Precision", "Recall", "F1 Score"], name="Score")
+    st.bar_chart(xgb_metrics * 100, height=280)
+
+    # Confusion matrix and error rates
+    cm_left, cm_right = st.columns(2, gap="large")
+    with cm_left:
+        st.markdown("#### Confusion matrix")
         st.caption("Held-out test set: 8,998 applicants.")
         st.dataframe(CONFUSION_MATRIX.style.background_gradient(axis=None), use_container_width=True)
         st.caption("TN = 6,753 | FP = 245 | FN = 360 | TP = 1,640")
+    with cm_right:
+        st.markdown("#### Error analysis")
+        tn, fp, fn, tp = 6753, 245, 360, 1640
+        error_stats = pd.Series({
+            "False positive rate": fp / (fp + tn),
+            "False negative rate": fn / (fn + tp),
+            "Overall error rate": (fp + fn) / (tn + fp + fn + tp),
+            "Correct prediction rate": (tn + tp) / (tn + fp + fn + tp),
+        })
+        st.bar_chart(error_stats * 100, height=280)
+        st.caption("Rates are calculated directly from the reported confusion matrix.")
 
-    with right:
-        st.markdown("### 3. Feature importance")
-        st.caption("Model-native XGBoost importance; not a causal analysis.")
-        st.bar_chart(FEATURE_IMPORTANCE.sort_values("Importance"), horizontal=True, height=430)
+    # Per-class metrics
+    st.markdown("#### Per-class performance")
+    per_class = pd.DataFrame({
+        "Precision": [0.95, 0.87],
+        "Recall": [0.96, 0.82],
+        "F1 Score": [0.96, 0.84],
+        "Support": [6998, 2000],
+    }, index=["Rejected (0)", "Approved (1)"])
+    st.dataframe(per_class, use_container_width=True)
+    st.bar_chart(per_class[["Precision", "Recall", "F1 Score"]] * 100, height=300)
 
+    # Feature importance
     st.divider()
-    st.markdown("### 4. Class distribution")
-    class_distribution = pd.DataFrame({"Applicants": [35000, 10000]}, index=["Rejected (0)", "Approved (1)"])
-    st.bar_chart(class_distribution, height=280)
-    st.caption("Original dataset distribution: 77.78% class 0 and 22.22% class 1. SMOTETomek was applied only to the training data.")
+    st.markdown("### What does XGBoost rely on?")
+    st.caption("Model-native feature importance. Importance is not causal and does not mean a feature independently determines approval.")
+    feature_pct = FEATURE_IMPORTANCE["Importance"] * 100
+    st.pyplot(horizontal_metric_chart(FEATURE_IMPORTANCE.sort_values("Importance") * 100, "All XGBoost feature importance", "Importance (%)"), clear_figure=True)
 
-    st.markdown("### 5. XGBoost test metrics")
-    xgb_metrics = pd.DataFrame({
-        "Score": [0.9328, 0.8700, 0.8200, 0.8443]
-    }, index=["Accuracy", "Precision", "Recall", "F1 Score"])
-    st.bar_chart(xgb_metrics * 100, horizontal=True, height=260)
+    top5 = FEATURE_IMPORTANCE.head(5)["Importance"].sum()
+    top1 = FEATURE_IMPORTANCE.iloc[0]["Importance"]
+    f1, f2, f3 = st.columns(3)
+    f1.metric("Top feature", "Previous loan defaults")
+    f2.metric("Top feature importance", f"{top1 * 100:.2f}%")
+    f3.metric("Top 5 cumulative importance", f"{top5 * 100:.2f}%")
 
-    with st.expander("XGBoost configuration"):
-        st.code("""n_estimators = 900
+    # Cumulative importance
+    cumulative = FEATURE_IMPORTANCE["Importance"].sort_values(ascending=False).cumsum() * 100
+    cumulative.index = [f"Top {i}" for i in range(1, len(cumulative) + 1)]
+    st.markdown("#### Cumulative feature importance")
+    st.line_chart(cumulative, height=300)
+    st.caption("This cumulative view is a mathematical summary of the reported XGBoost feature-importance values.")
+
+    # Feature groups
+    group_values = pd.Series({
+        "Previous defaults": 0.805732,
+        "Home ownership": 0.031212 + 0.020834,
+        "Loan / credit factors": 0.018895 + 0.016857 + 0.012999,
+        "Education": 0.020783,
+        "Loan intent": 0.017310 + 0.008511 + 0.007039 + 0.005432 + 0.004117,
+        "Personal / employment": 0.009649 + 0.004760 + 0.004585,
+    }).sort_values(ascending=False) * 100
+    st.markdown("#### Feature importance by broad group")
+    st.bar_chart(group_values, height=320)
+    st.caption("Groups are simple sums of the displayed feature-importance values and are intended only as a visualization aid.")
+
+    # Confusion matrix visual
+    st.markdown("#### Confusion matrix visual")
+    fig, ax = plt.subplots(figsize=(7, 4.8))
+    cm = CONFUSION_MATRIX.values
+    im = ax.imshow(cm, aspect="auto")
+    ax.set_xticks([0, 1], ["Predicted Rejected", "Predicted Approved"])
+    ax.set_yticks([0, 1], ["Actual Rejected", "Actual Approved"])
+    for i in range(2):
+        for j in range(2):
+            ax.text(j, i, f"{cm[i, j]:,}", ha="center", va="center", fontsize=14, fontweight="bold")
+    ax.set_title("XGBoost test confusion matrix", loc="left", fontsize=14, fontweight="bold", color="#18324a")
+    fig.colorbar(im, ax=ax, fraction=0.04, pad=0.03, label="Applicants")
+    fig.tight_layout()
+    st.pyplot(fig, clear_figure=True)
+
+    # Model configuration
+    st.divider()
+    st.markdown("### XGBoost configuration")
+    st.code("""n_estimators = 900
 max_depth = 5
 learning_rate = 0.035
 subsample = 0.95
@@ -286,4 +460,17 @@ eval_metric = logloss
 tree_method = hist
 random_state = 42""", language="text")
 
-    st.caption("Feature importance does not mean that a feature alone causes approval or rejection. Model scores are not guaranteed real-world approval probabilities.")
+    # Research notes
+    st.markdown("### Research notes")
+    n1, n2, n3 = st.columns(3)
+    with n1:
+        st.markdown("**Generalization**")
+        st.write("The reported benchmark uses a held-out test set. Training accuracy is not reported here, so no unsupported train/test overfitting claim is made.")
+    with n2:
+        st.markdown("**Imbalance handling**")
+        st.write("SMOTETomek is applied to training data only. The held-out test set remains separate for evaluation.")
+    with n3:
+        st.markdown("**Interpretation**")
+        st.write("Feature importance describes model behavior, not causal relationships or guaranteed real-world approval odds.")
+
+    st.caption("All research statistics shown in this tab come from the completed model experiments. No ROC or calibration chart is fabricated because the underlying notebook does not provide the required prediction arrays for those curves.")
