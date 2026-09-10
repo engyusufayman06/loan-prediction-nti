@@ -32,6 +32,83 @@ jobs:
           PYTHONPATH: .
         run: python -m pytest -q
 
+      - name: Benchmark all classifiers
+        env:
+          PYTHONPATH: .
+        run: |
+          python - <<'PY'
+          import pandas as pd
+          from imblearn.combine import SMOTETomek
+          from sklearn.ensemble import ExtraTreesClassifier, GradientBoostingClassifier, HistGradientBoostingClassifier, RandomForestClassifier
+          from sklearn.linear_model import LogisticRegression
+          from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
+          from sklearn.model_selection import train_test_split
+          from sklearn.neighbors import KNeighborsClassifier
+          from sklearn.pipeline import make_pipeline
+          from sklearn.preprocessing import RobustScaler
+          from sklearn.svm import SVC
+          from sklearn.tree import DecisionTreeClassifier
+          from xgboost import XGBClassifier
+          from src.model import _clean_and_encode
+
+          data = pd.read_csv("loan_data.csv")
+          y = data["loan_status"].astype(int)
+          raw_x = data.drop(columns=["loan_status"])
+          x_train_raw, x_test_raw, y_train_raw, y_test_raw = train_test_split(
+              raw_x, y, test_size=0.20, random_state=42, stratify=y
+          )
+          x_train, bounds = _clean_and_encode(x_train_raw)
+          x_test, _ = _clean_and_encode(x_test_raw, bounds)
+          y_train = y_train_raw.loc[x_train.index]
+          y_test = y_test_raw.loc[x_test.index]
+          columns = x_train.columns.tolist()
+          x_test = x_test.reindex(columns=columns, fill_value=0)
+
+          scaler = RobustScaler()
+          x_train_scaled = scaler.fit_transform(x_train)
+          x_test_scaled = scaler.transform(x_test)
+          x_train_balanced, y_train_balanced = SMOTETomek(random_state=42).fit_resample(
+              x_train_scaled, y_train
+          )
+
+          models = [
+              ("Logistic Regression", make_pipeline(RobustScaler(), LogisticRegression(C=1.0, max_iter=2000, class_weight=None, random_state=42))),
+              ("KNN", make_pipeline(RobustScaler(), KNeighborsClassifier(n_neighbors=11, weights="distance", p=2))),
+              ("Decision Tree", DecisionTreeClassifier(max_depth=12, min_samples_split=8, min_samples_leaf=3, max_features=None, class_weight=None, random_state=42)),
+              ("Random Forest", RandomForestClassifier(n_estimators=600, max_depth=18, min_samples_split=4, min_samples_leaf=1, max_features="sqrt", class_weight=None, random_state=42, n_jobs=2)),
+              ("Extra Trees", ExtraTreesClassifier(n_estimators=600, max_depth=18, min_samples_split=3, min_samples_leaf=1, max_features=None, class_weight=None, random_state=42, n_jobs=2)),
+              ("Gradient Boosting", GradientBoostingClassifier(n_estimators=400, learning_rate=0.04, max_depth=3, min_samples_split=6, min_samples_leaf=3, subsample=0.90, random_state=42)),
+              ("HistGradientBoosting", HistGradientBoostingClassifier(max_iter=400, learning_rate=0.05, max_leaf_nodes=31, min_samples_leaf=15, l2_regularization=1.0, random_state=42)),
+              ("SVM", make_pipeline(RobustScaler(), SVC(C=2.0, gamma="scale", kernel="rbf", class_weight=None))),
+              ("XGBoost", XGBClassifier(n_estimators=900, max_depth=5, learning_rate=0.035, subsample=0.95, colsample_bytree=0.90, min_child_weight=1, gamma=0.0, reg_alpha=0.02, reg_lambda=1.0, random_state=42, eval_metric="logloss", tree_method="hist", n_jobs=2)),
+          ]
+
+          print("\nALL CLASSIFIERS BENCHMARK — SAME STRATIFIED TEST SPLIT")
+          print("=" * 110)
+          results = []
+          for name, model in models:
+              if name == "HistGradientBoosting":
+                  model.fit(x_train, y_train)
+                  pred = model.predict(x_test).astype(int)
+              else:
+                  model.fit(x_train_balanced, y_train_balanced)
+                  pred = model.predict(x_test_scaled).astype(int)
+              row = {
+                  "name": name,
+                  "accuracy": accuracy_score(y_test, pred),
+                  "precision": precision_score(y_test, pred, zero_division=0),
+                  "recall": recall_score(y_test, pred, zero_division=0),
+                  "f1": f1_score(y_test, pred, zero_division=0),
+              }
+              results.append(row)
+              print(f"{name:22s} accuracy={row['accuracy']*100:6.2f}% precision={row['precision']:.4f} recall={row['recall']:.4f} f1={row['f1']:.4f}")
+
+          best = max(results, key=lambda r: r["accuracy"])
+          print("=" * 110)
+          print(f"BEST CLASSIFIER: {best['name']} -> {best['accuracy']*100:.2f}%")
+          print("=" * 110)
+          PY
+
       - name: Benchmark XGBoost candidates
         env:
           PYTHONPATH: .
@@ -64,7 +141,7 @@ jobs:
           x_train, y_train = SMOTETomek(random_state=42).fit_resample(x_train, y_train)
 
           candidates = [
-              ("current", dict(n_estimators=600, max_depth=5, learning_rate=0.05, subsample=0.90, colsample_bytree=0.90, min_child_weight=2, gamma=0.05, reg_alpha=0.05, reg_lambda=2.0)),
+              ("current_600", dict(n_estimators=600, max_depth=5, learning_rate=0.05, subsample=0.90, colsample_bytree=0.90, min_child_weight=2, gamma=0.05, reg_alpha=0.05, reg_lambda=2.0)),
               ("balanced_4", dict(n_estimators=800, max_depth=4, learning_rate=0.04, subsample=0.95, colsample_bytree=0.95, min_child_weight=1, gamma=0.0, reg_alpha=0.0, reg_lambda=1.5)),
               ("balanced_5", dict(n_estimators=800, max_depth=5, learning_rate=0.04, subsample=0.95, colsample_bytree=0.95, min_child_weight=1, gamma=0.0, reg_alpha=0.0, reg_lambda=1.5)),
               ("regularized_5", dict(n_estimators=900, max_depth=5, learning_rate=0.035, subsample=0.95, colsample_bytree=0.90, min_child_weight=1, gamma=0.0, reg_alpha=0.02, reg_lambda=1.0)),
@@ -73,16 +150,10 @@ jobs:
           ]
 
           print("\nXGBOOST CANDIDATE BENCHMARK")
-          print("=" * 78)
+          print("=" * 90)
           results = []
           for name, params in candidates:
-              model = XGBClassifier(
-                  **params,
-                  random_state=42,
-                  eval_metric="logloss",
-                  tree_method="hist",
-                  n_jobs=2,
-              )
+              model = XGBClassifier(**params, random_state=42, eval_metric="logloss", tree_method="hist", n_jobs=2)
               model.fit(x_train, y_train)
               pred = model.predict(x_test).astype(int)
               row = {
@@ -96,9 +167,9 @@ jobs:
               print(f"{name:16s} accuracy={row['accuracy']*100:.2f}% precision={row['precision']:.4f} recall={row['recall']:.4f} f1={row['f1']:.4f}")
 
           best = max(results, key=lambda r: r["accuracy"])
-          print("=" * 78)
+          print("=" * 90)
           print(f"BEST ACCURACY: {best['name']} -> {best['accuracy']*100:.2f}%")
-          print("=" * 78)
+          print("=" * 90)
           PY
 
       - name: Train tuned model and report metrics
