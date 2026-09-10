@@ -67,7 +67,7 @@ The Streamlit app is organized as a product workspace:
                  ┌───────────────────────────────┐
                  │      Reusable ML Core          │
                  │ cleaning → encoding → SMOTE   │
-                 │      → StandardScaler → XGB    │
+                 │     → tree-model XGBoost       │
                  └───────────────┬───────────────┘
                                  │
                 ┌────────────────┼────────────────┐
@@ -175,9 +175,9 @@ Raw data
    │
    ├── SMOTE on training split only
    │
-   ├── StandardScaler
-   │
-   └── model benchmarking
+   └── model-specific scaling
+          ├── Logistic Regression / KNN / SVM → StandardScaler
+          └── Tree models / XGBoost → unscaled engineered features
    │
    ▼
 XGBoost deployable inference model
@@ -326,7 +326,8 @@ It uses:
 - five engineered ratio/indicator features;
 - a stratified 80/20 split;
 - SMOTE for the training split;
-- StandardScaler after resampling.
+- StandardScaler for the scale-sensitive benchmark models;
+- the unscaled engineered representation for tree models including XGBoost.
 
 ### Top XGBoost features
 
@@ -370,7 +371,7 @@ The notebook also performs global feature-importance cross-examination across th
                                ▼
 ┌──────────────────────────────────────────────────────┐
 │ feature engineering + LabelEncoder + SMOTE +        │
-│ StandardScaler + XGBoost                             │
+│ tree-model XGBoost inference                         │
 └──────────────────────────────────────────────────────┘
 ```
 
