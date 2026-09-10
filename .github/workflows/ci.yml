@@ -28,4 +28,28 @@ jobs:
         run: python -m compileall app.py src tests
 
       - name: Run tests
-        run: pytest -q
+        env:
+          PYTHONPATH: .
+        run: python -m pytest -q
+
+      - name: Train tuned model and report metrics
+        env:
+          PYTHONPATH: .
+        run: |
+          python - <<'PY'
+          from src.model import train_model
+
+          bundle, metrics = train_model("loan_data.csv")
+          print("=" * 60)
+          print("TUNED MODEL RESULTS")
+          print("=" * 60)
+          print(f"Accuracy : {metrics['accuracy'] * 100:.2f}%")
+          print(f"Precision: {metrics['precision']:.4f}")
+          print(f"Recall   : {metrics['recall']:.4f}")
+          print(f"F1 Score : {metrics['f1']:.4f}")
+          print(f"Test rows: {metrics['test_rows']}")
+          print(f"Features : {metrics['feature_count']}")
+          print("Confusion matrix:")
+          print(metrics["confusion_matrix"])
+          print("=" * 60)
+          PY
