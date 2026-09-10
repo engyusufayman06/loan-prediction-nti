@@ -8,9 +8,9 @@
 <br>
 
 <img src="https://img.shields.io/badge/Track-Machine%20Learning-06B6D4?style=for-the-badge">
-<img src="https://img.shields.io/badge/Model-XGBoost-7C3AED?style=for-the-badge">
+<img src="https://img.shields.io/badge/Model-HistGradientBoosting-7C3AED?style=for-the-badge">
 <img src="https://img.shields.io/badge/Benchmark%20Leader-HistGradientBoosting-22C55E?style=for-the-badge">
-<img src="https://img.shields.io/badge/XGBoost%20Test%20Accuracy-92.97%25-22C55E?style=for-the-badge">
+<img src="https://img.shields.io/badge/HistGradientBoosting%20Test%20Accuracy-93.29%25-22C55E?style=for-the-badge">
 <img src="https://img.shields.io/badge/App-Streamlit-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white">
 <img src="https://img.shields.io/badge/CI-GitHub%20Actions-2088FF?style=for-the-badge&logo=githubactions&logoColor=white">
 
@@ -27,9 +27,9 @@
 
 **Loan Intelligence** is an educational machine-learning system for **binary loan-status classification**. Instead of stopping at a notebook, the project packages the experiment into a small product: a reusable preprocessing/model layer, an interactive Streamlit application, batch CSV inference, model diagnostics, feature engineering, benchmarking, and an in-app technical presentation.
 
-> **Final notebook benchmark:** HistGradientBoosting reached **93.2874% held-out accuracy** and **0.846545 F1**. The repository's deployable XGBoost model reached **92.9651% accuracy**, **0.855434 class-1 precision**, **0.8225 class-1 recall**, **0.838644 F1**, and **0.975957 ROC-AUC** on the same held-out test split.
+> **Final notebook benchmark:** HistGradientBoosting reached **93.2874% held-out accuracy**, **0.860537 precision**, **0.8330 recall**, **0.846545 F1**, and **0.976527 ROC-AUC**. It is the repository's benchmark leader and deployable model.
 
-This repository is intentionally transparent: metrics, preprocessing decisions, engineered features, class balancing, model trade-offs, limitations, and the separate hyperparameter-search experiment are documented rather than hidden behind a single accuracy number.
+This repository is intentionally transparent: metrics, preprocessing decisions, engineered features, class balancing, model trade-offs, limitations, feature attribution, and the separate XGBoost optimization experiment are documented rather than hidden behind a single accuracy number.
 
 ---
 
@@ -39,9 +39,9 @@ The Streamlit app is organized as a product workspace:
 
 | Workspace | What it does |
 |---|---|
-| **Prediction Studio** | Enter a complete applicant profile and run XGBoost inference. |
+| **Prediction Studio** | Enter a complete applicant profile and run HistGradientBoosting inference. |
 | **Batch Lab** | Upload a CSV, validate its schema, score rows, inspect results, and download predictions. |
-| **Model Insights** | Explore the complete nine-model benchmark, ROC-AUC, confusion matrix, XGBoost feature importance, dataset statistics, and optimization results. |
+| **Model Insights** | Explore the complete nine-model benchmark, ROC-AUC, confusion matrix, HistGradientBoosting diagnostics, feature importance, dataset statistics, and research experiments. |
 | **Team & About** | Project identity, team members, and NTI context. |
 
 ### Product flow
@@ -67,7 +67,7 @@ The Streamlit app is organized as a product workspace:
                  ┌───────────────────────────────┐
                  │      Reusable ML Core          │
                  │ cleaning → encoding → SMOTE   │
-                 │     → tree-model XGBoost       │
+                 │ → HistGradientBoosting         │
                  └───────────────┬───────────────┘
                                  │
                 ┌────────────────┼────────────────┐
@@ -101,7 +101,8 @@ The system learns a mapping from historical labelled examples to a binary target
 - class-imbalance handling;
 - model comparison;
 - held-out evaluation;
-- reusable inference.
+- reusable inference;
+- model interpretation.
 
 ### Important boundary
 
@@ -177,10 +178,10 @@ Raw data
    │
    └── model-specific scaling
           ├── Logistic Regression / KNN / SVM → StandardScaler
-          └── Tree models / XGBoost → unscaled engineered features
+          └── Tree models → unscaled engineered features
    │
    ▼
-XGBoost deployable inference model
+HistGradientBoosting deployable inference model
 ```
 
 ### Engineered features
@@ -197,7 +198,7 @@ These features increase the final model representation from the raw applicant co
 
 ### Why the pipeline matters
 
-The important engineering step is not simply training XGBoost. The same feature contract and transformations are reused during inference so that a prediction in the UI follows the project's trained representation rather than a separate, hand-written preprocessing path.
+The important engineering step is consistency. The same feature contract and transformations are reused during inference so that a prediction in the UI follows the project's trained representation rather than a separate, hand-written preprocessing path.
 
 ---
 
@@ -207,8 +208,8 @@ The final notebook evaluates **nine classifiers** on the same stratified held-ou
 
 | Model | Accuracy | Precision | Recall | F1-Score | ROC-AUC |
 |---|---:|---:|---:|---:|---:|
-| **HistGradientBoosting** | **93.2874%** | 0.860537 | 0.8330 | **0.846545** | **0.976527** |
-| **XGBoost** | **92.9651%** | **0.855434** | 0.8225 | **0.838644** | 0.975957 |
+| **HistGradientBoosting** | **93.2874%** | **0.860537** | 0.8330 | **0.846545** | **0.976527** |
+| **XGBoost** | 92.9651% | 0.855434 | 0.8225 | 0.838644 | 0.975957 |
 | Random Forest | 91.1202% | 0.773079 | **0.8500** | 0.809717 | 0.968021 |
 | Extra Trees | 89.7755% | 0.738305 | 0.8365 | 0.784341 | 0.963371 |
 | Gradient Boosting | 89.3532% | 0.717809 | 0.8585 | 0.781876 | 0.962550 |
@@ -227,17 +228,9 @@ The final notebook sorts the benchmark by **F1-Score**, making **HistGradientBoo
 - F1: **0.846545**
 - ROC-AUC: **0.976527**
 
-The repository keeps **XGBoost as the deployable model** because the application, feature-importance presentation, and inference layer are built around the XGBoost contract.
+The repository uses HistGradientBoosting as the deployable model because it leads the final benchmark by F1, accuracy, and ROC-AUC. XGBoost remains documented as the close second-place benchmark model.
 
-XGBoost itself reports:
-
-- Accuracy: **92.9651%**
-- Precision: **0.855434**
-- Recall: **0.8225**
-- F1: **0.838644**
-- ROC-AUC: **0.975957**
-
-That distinction is deliberate: the README does not pretend that XGBoost won every metric when the final notebook shows HistGradientBoosting slightly ahead.
+That distinction is deliberate: the README keeps the complete benchmark instead of deleting the other experiments just because one model was selected for deployment.
 
 ---
 
@@ -269,50 +262,53 @@ SMOTE is applied **only to the training split**. The held-out test set remains u
 
 # 06 · Model behavior, not just accuracy
 
-### XGBoost confusion matrix
+### HistGradientBoosting confusion matrix
 
 ```text
                     Predicted
                  0           1
-Actual  0      6720        278
-        1       355       1645
+Actual  0      6728        270
+        1       334       1666
 ```
 
 From this matrix:
 
-- True Negatives: **6,720**
-- False Positives: **278**
-- False Negatives: **355**
-- True Positives: **1,645**
-- Error rate: **7.0349%**
-- Correct prediction rate: **92.9651%**
-- False Positive Rate: **3.9769%**
-- False Negative Rate: **17.7500%**
+- True Negatives: **6,728**
+- False Positives: **270**
+- False Negatives: **334**
+- True Positives: **1,666**
+- Error rate: **6.7126%**
+- Correct prediction rate: **93.2874%**
+- False Positive Rate: **3.8582%**
+- False Negative Rate: **16.7000%**
 
-For class 1, the final notebook reports:
+### Full classification report
 
-- **Precision:** 0.855434
-- **Recall:** 0.8225
-- **F1:** 0.838644
+| Class | Precision | Recall | F1 | Support |
+|---|---:|---:|---:|---:|
+| Rejected (0) | **0.952705** | **0.961418** | **0.957041** | **6,998** |
+| Approved (1) | **0.860537** | **0.833000** | **0.846545** | **2,000** |
+| Macro avg | 0.906621 | 0.897209 | 0.901793 | 8,998 |
+| Weighted avg | 0.932218 | 0.932874 | 0.932481 | 8,998 |
 
-The right operating point depends on the business cost of false positives versus false negatives.
+The positive-class recall means the model identifies **1,666 of 2,000** approved examples in the held-out test set. The operating point should be interpreted in terms of the relative cost of false positives and false negatives, not accuracy alone.
 
 ---
 
 # 07 · Generalization & overfitting
 
-The final notebook includes a **learning-curve assessment** using three-fold stratified cross-validation and F1 as the scoring metric.
+The final notebook includes a **learning-curve assessment** using three-fold stratified cross-validation and F1 as the scoring metric. It also compares all nine candidate models on the same held-out split.
 
-The benchmark is therefore interpreted using held-out performance and cross-validation diagnostics rather than training accuracy alone.
-
-The project does **not** claim that the model is perfect or production ready.
+The project therefore treats generalization as a separate question from raw training performance. The repository does **not** claim that a 93% test accuracy automatically means production readiness.
 
 Known facts from the benchmark:
 
 - HistGradientBoosting: **93.2874%** held-out accuracy.
 - XGBoost: **92.9651%** held-out accuracy.
+- Random Forest: **91.1202%** held-out accuracy.
 - Logistic Regression: **86.1747%** held-out accuracy.
-- The difference between models demonstrates why the project includes a benchmark instead of presenting a single algorithm in isolation.
+
+The spread demonstrates why the project includes model comparison, learning curves, ROC/PR analysis, and explicit limitations rather than presenting one algorithm in isolation.
 
 ---
 
@@ -327,26 +323,28 @@ It uses:
 - a stratified 80/20 split;
 - SMOTE for the training split;
 - StandardScaler for the scale-sensitive benchmark models;
-- the unscaled engineered representation for tree models including XGBoost.
+- the unscaled engineered representation for tree models including HistGradientBoosting.
 
-### Top XGBoost features
+### Top HistGradientBoosting features
 
-The notebook's global feature-importance chart shows the following top XGBoost features, rounded for presentation:
+HistGradientBoosting does not expose native `feature_importances_`. The notebook's global feature-importance cross-examination therefore uses **permutation importance** for this model. The values below are normalized relative importance percentages from five repeats on the first 1,000 rows of the held-out test set.
 
 | Rank | Feature | Relative importance |
 |---:|---|---:|
-| 1 | `previous_loan_defaults_on_file` | **~88.0%** |
-| 2 | `high_risk_income_ratio` | **~1.9%** |
-| 3 | `cb_person_cred_hist_length` | **~1.4%** |
-| 4 | `loan_int_rate` | **~1.0%** |
-| 5 | `person_home_ownership` | **~0.8%** |
-| 6 | `person_education` | **~0.7%** |
-| 7 | `loan_intent` | **~0.7%** |
-| 8 | `person_gender` | **~0.6%** |
+| 1 | `previous_loan_defaults_on_file` | **31.3320%** |
+| 2 | `person_income` | **11.5035%** |
+| 3 | `income_to_loan_ratio` | **9.4854%** |
+| 4 | `person_emp_exp` | **8.5267%** |
+| 5 | `loan_int_rate` | **8.4258%** |
+| 6 | `emp_length_to_age_ratio` | **6.9122%** |
+| 7 | `person_home_ownership` | **6.8618%** |
+| 8 | `loan_intent` | **3.9354%** |
+| 9 | `cb_person_cred_hist_length` | **2.6236%** |
+| 10 | `credit_score` | **2.3209%** |
 
-> **Important:** model feature importance is a measure of how the fitted model uses a feature. It is not a causal claim that the feature alone determines a loan decision.
+The ranking is a model-attribution result, not a causal statement. A larger percentage means that shuffling that feature affected the measured model performance more strongly in this experiment; it does not mean the feature alone determines whether a person should receive a loan.
 
-The notebook also performs global feature-importance cross-examination across the nine models, using native importance when available and permutation importance where required.
+The full notebook also performs feature-importance cross-examination across the nine models, using native importance where available and permutation importance where native importance is not exposed.
 
 ---
 
@@ -371,7 +369,7 @@ The notebook also performs global feature-importance cross-examination across th
                                ▼
 ┌──────────────────────────────────────────────────────┐
 │ feature engineering + LabelEncoder + SMOTE +        │
-│ tree-model XGBoost inference                         │
+│ HistGradientBoosting inference                       │
 └──────────────────────────────────────────────────────┘
 ```
 
@@ -428,7 +426,7 @@ loan-prediction-nti/
 
 ### Prediction Studio
 
-Enter the complete 13-field applicant input contract. The application automatically creates the five engineered features used by the final notebook and sends the row through the reusable preprocessing/model layer.
+Enter the complete 13-field applicant input contract. The application automatically creates the five engineered features used by the final notebook and sends the row through the reusable preprocessing/model layer with HistGradientBoosting as the deployable classifier.
 
 ### Batch Lab
 
@@ -450,6 +448,8 @@ Optional labelled-data evaluation
 Download scored CSV
 ```
 
+The batch interface uses the same raw schema as the single-applicant workflow, so the demo is not using a separate simplified model.
+
 ### Model Insights
 
 The application surfaces:
@@ -458,14 +458,16 @@ The application surfaces:
 - Accuracy, Precision, Recall, F1 and ROC-AUC;
 - dataset and split statistics;
 - SMOTE balancing statistics;
-- XGBoost confusion matrix;
-- false-positive / false-negative rates;
-- top XGBoost features;
-- the notebook's separate hyperparameter-search result.
+- HistGradientBoosting confusion matrix;
+- FPR / FNR / error rate / correct rate;
+- full HistGradientBoosting classification report;
+- top HistGradientBoosting permutation features;
+- model configuration;
+- the notebook's separate XGBoost hyperparameter-search experiment.
 
 ### Demo CSV
 
-`demo_test.csv` contains six valid applicant records covering different education, income, home ownership, loan intent, credit-score, and previous-default scenarios.
+`demo_test.csv` contains six valid applicant records covering different education, income, home ownership, loan intent, credit-score, and previous-default scenarios. The current HistGradientBoosting demo produces both approval and rejection outcomes across the supplied records.
 
 ---
 
@@ -508,15 +510,13 @@ python scripts/full_model_benchmark.py
 
 The repository is structured for **Streamlit Community Cloud**.
 
-Use:
-
 ```text
 Repository: engyusufayman06/loan-prediction-nti
 Branch:     main
 Main file:  app.py
 ```
 
-The application reads `loan_data.csv` from the repository root and caches the trained model during normal Streamlit interaction.
+The application reads `loan_data.csv` from the repository root and caches the trained HistGradientBoosting model during normal Streamlit interaction. No separate backend service is required for this educational demo.
 
 ---
 
@@ -532,32 +532,35 @@ This project goes beyond a notebook by including:
 - class balancing on the training split only;
 - unit tests;
 - GitHub Actions CI;
-- dedicated architecture documentation;
+- a dedicated benchmark script;
+- architecture documentation;
 - a model card;
-- an explicit benchmark;
+- an explicit nine-model benchmark;
+- model diagnostics and feature attribution;
 - a demo CSV;
 - explicit limitations and responsible-use guidance.
+
+The key engineering rule is that the application consumes the same feature contract as the research pipeline. This reduces the common notebook-to-demo mismatch where the model is trained one way and deployed another way.
 
 ---
 
 # 15 · Limitations & responsible use
 
-This system is an **educational / portfolio ML demonstration**.
-
-It has not been validated as a real lender's underwriting model and should not be used as the sole basis for a real financial decision.
+This system is an **educational / portfolio ML demonstration**. It has not been validated as a real lender's underwriting model and should not be used as the sole basis for a real financial decision.
 
 Known limitations include:
 
 - the dataset may not represent a real lender's current population;
-- categorical LabelEncoder values are learned from the supplied dataset;
-- no fairness audit or subgroup performance analysis has been completed;
+- categorical encoding is learned from the supplied dataset;
+- SMOTE changes the training distribution;
+- subgroup fairness has not been fully audited;
 - probability calibration has not been established for real-world approval odds;
 - dataset shift and production drift are not monitored;
-- the benchmark does not establish causal relationships;
-- SMOTE changes the training distribution;
-- the final notebook's exploratory preprocessing and benchmark are educational rather than a regulated credit-risk methodology;
-- the top-feature chart is model attribution, not causal inference;
-- the separate hyperparameter-search experiment is scored by F1 and is not automatically promoted to the deployed model.
+- benchmark metrics do not establish causal relationships;
+- feature importance is model attribution, not causal inference;
+- the separate XGBoost optimization experiment is a research result and is not the deployed model.
+
+The demo's approval/rejection probabilities should therefore be read as **model scores**, not guaranteed real-world probabilities.
 
 ---
 
@@ -567,12 +570,12 @@ Known limitations include:
 CURRENT
   │
   ├── Interactive Streamlit application
-  ├── Reusable ML core
+  ├── Reusable HistGradientBoosting ML core
   ├── Batch inference
   ├── Engineered features
-  └── Automated tests / CI
-  │
-  ▼
+  ├── Automated tests / CI
+  └── Nine-model benchmark
+
 NEXT
   │
   ├── Versioned model artifact
@@ -580,9 +583,9 @@ NEXT
   ├── SHAP local explanations
   ├── Probability calibration
   ├── Fairness / subgroup evaluation
-  └── Dockerized deployment
-  │
-  ▼
+  ├── Dockerized deployment
+  └── Data / concept drift monitoring
+
 PRODUCTION MATURITY
   │
   ├── MLflow experiment tracking
@@ -592,6 +595,8 @@ PRODUCTION MATURITY
   └── Reproducible CI/CD
 ```
 
+The roadmap is deliberately separated from the current capabilities so future engineering work is not confused with functionality that already exists.
+
 ---
 
 # 17 · Team
@@ -599,12 +604,14 @@ PRODUCTION MATURITY
 ### NTI Machine Learning Track
 
 | # | Team member |
-|---:|---|
+|---|---|
 | 01 | **Yusuf Ayman Tolba** |
 | 02 | **Mohamed Reda Hussein** |
 | 03 | **Abdelrahman Mohamed Ahmed** |
 | 04 | **Abdelmoniem Ibrahim Abdelmoniem** |
 | 05 | **Asmaa Rabee Mohammed** |
+
+The project was developed as a team-based NTI machine-learning project, combining research, modeling, application development, testing, documentation, and presentation work into one deliverable.
 
 ---
 
@@ -612,4 +619,14 @@ PRODUCTION MATURITY
 
 This project was developed in the context of the **National Telecommunication Institute (NTI) Machine Learning Track**.
 
+The repository demonstrates the complete lifecycle of an educational ML project: understanding the dataset, preparing the representation, engineering features, comparing algorithms, validating the chosen model, interpreting model behavior, and shipping the result as an interactive application.
+
 **Official NTI:** https://www.nti.sci.eg/
+
+---
+
+## Final note
+
+Loan Intelligence is intentionally more than a classifier. The repository is a compact example of how a machine-learning experiment can move from **data → preprocessing → feature engineering → imbalance handling → benchmark → model selection → interpretation → reusable inference → interactive product** without hiding the experimental details.
+
+The headline number is **93.2874% held-out accuracy for HistGradientBoosting**, but the more important result is the reproducible workflow around it.
