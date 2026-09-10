@@ -24,18 +24,19 @@ MODEL_INPUT_COLUMNS = [
     "person_gender", "person_education",
 ]
 
-# Tuned XGBoost configuration. The lower learning rate + more trees improve
-# the baseline while subsampling/regularization help control overfitting.
+# Selected from a reproducible XGBoost benchmark on the fixed stratified split.
+# This configuration gave the strongest measured accuracy among the tested
+# candidates while keeping regularization and subsampling to limit overfitting.
 XGB_CONFIG = {
-    "n_estimators": 600,
+    "n_estimators": 900,
     "max_depth": 5,
-    "learning_rate": 0.05,
-    "subsample": 0.90,
+    "learning_rate": 0.035,
+    "subsample": 0.95,
     "colsample_bytree": 0.90,
-    "min_child_weight": 2,
-    "gamma": 0.05,
-    "reg_alpha": 0.05,
-    "reg_lambda": 2.0,
+    "min_child_weight": 1,
+    "gamma": 0.0,
+    "reg_alpha": 0.02,
+    "reg_lambda": 1.0,
     "random_state": 42,
     "eval_metric": "logloss",
     "tree_method": "hist",
