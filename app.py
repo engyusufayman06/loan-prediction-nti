@@ -8,10 +8,38 @@ st.set_page_config(page_title="Loan Intelligence", layout="wide")
 
 st.markdown("""
 <style>
-    .block-container {max-width: 1180px; padding-top: 2rem;}
-    .main-title {font-size: 2.4rem; font-weight: 700; color: #1f2937; margin-bottom: 0.2rem;}
-    .sub-title {color: #6b7280; margin-bottom: 1.5rem;}
-    .result-box {padding: 1.2rem; border: 1px solid #e5e7eb; border-radius: 12px; background: #ffffff;}
+    .stApp { background: #ffffff; }
+    .block-container { max-width: 1180px; padding-top: 2rem; padding-bottom: 3rem; }
+    .main-title { font-size: 2.4rem; font-weight: 700; color: #172033; margin-bottom: 0.2rem; }
+    .sub-title { color: #667085; margin-bottom: 1.5rem; }
+    .section-card {
+        background: #f8fafc;
+        border: 1px solid #e6eaf0;
+        border-radius: 14px;
+        padding: 1rem 1.2rem;
+        margin-bottom: 1rem;
+    }
+    div[data-testid="stMetric"] {
+        background: #f8fafc;
+        border: 1px solid #e6eaf0;
+        border-radius: 12px;
+        padding: 0.8rem;
+    }
+    div[data-baseweb="select"] > div,
+    div[data-baseweb="input"] > div {
+        background: #ffffff;
+    }
+    .stButton > button, .stFormSubmitButton > button {
+        background: #1f6feb;
+        color: #ffffff;
+        border: 0;
+        border-radius: 9px;
+        font-weight: 600;
+    }
+    .stButton > button:hover, .stFormSubmitButton > button:hover {
+        background: #1558b0;
+        color: #ffffff;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -28,29 +56,61 @@ def load_model():
 
 
 def midpoint(value_range):
-    return float(sum(value_range) / 2)
+    return float((value_range[0] + value_range[1]) / 2)
 
 
 tab1, tab2 = st.tabs(["Single Applicant", "CSV Analysis"])
 
 with tab1:
     st.subheader("Applicant profile")
-    st.caption("Choose ranges instead of entering exact numbers. The model uses the midpoint of each selected range.")
+    st.caption("Select a realistic range for each numeric field. The model uses the midpoint of the selected range.")
 
     with st.form("loan_form"):
         left, right = st.columns(2)
 
         with left:
-            age_range = st.slider("Age", 18, 80, (25, 35))
-            income_range = st.slider("Annual Income", 10000, 200000, (40000, 70000), step=5000)
-            employment_range = st.slider("Employment Experience (years)", 0, 40, (3, 8))
-            loan_amount_range = st.slider("Loan Amount", 1000, 50000, (5000, 15000), step=1000)
-            interest_range = st.slider("Interest Rate (%)", 1.0, 30.0, (8.0, 14.0), step=0.5)
-            loan_income_range = st.slider("Loan Percent of Income", 0.01, 0.80, (0.15, 0.30), step=0.01)
+            age_range = st.slider(
+                "Age",
+                min_value=18, max_value=80, value=(25, 35), step=1,
+                help="The model's preprocessing accepts applicant ages up to 80."
+            )
+            income_range = st.slider(
+                "Annual Income ($)",
+                min_value=8000, max_value=720000, value=(40000, 70000), step=5000,
+                help="Income range aligned with the dataset scale."
+            )
+            employment_range = st.slider(
+                "Employment Experience (years)",
+                min_value=0, max_value=60, value=(3, 8), step=1,
+                help="The model's preprocessing accepts employment experience up to 60 years."
+            )
+            loan_amount_range = st.slider(
+                "Loan Amount ($)",
+                min_value=500, max_value=35000, value=(5000, 15000), step=500,
+                help="Loan amount range aligned with the dataset scale."
+            )
+            interest_range = st.slider(
+                "Interest Rate (%)",
+                min_value=5.0, max_value=20.0, value=(8.0, 14.0), step=0.1,
+                help="Interest-rate range aligned with the dataset scale."
+            )
+            loan_income_range = st.slider(
+                "Loan Percent of Income",
+                min_value=0.01, max_value=0.83, value=(0.15, 0.30), step=0.01,
+                help="Loan amount as a fraction of annual income."
+            )
 
         with right:
-            credit_history_range = st.slider("Credit History Length (years)", 0, 30, (3, 10))
-            credit_score_range = st.slider("Credit Score", 300, 850, (600, 750), step=10)
+            credit_history_range = st.slider(
+                "Credit History Length (years)",
+                min_value=2, max_value=30, value=(3, 10), step=1,
+                help="Credit-history range aligned with the dataset scale."
+            )
+            credit_score_range = st.slider(
+                "Credit Score",
+                min_value=390, max_value=850, value=(600, 750), step=5,
+                help="Credit-score range aligned with the dataset scale."
+            )
             home = st.selectbox("Home Ownership", ["RENT", "OWN", "MORTGAGE", "OTHER"])
             education = st.selectbox("Education", ["High School", "Associate", "Bachelor", "Master", "Doctorate"])
             gender = st.selectbox("Gender", ["male", "female"])
