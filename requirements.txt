@@ -2,7 +2,7 @@ numpy==2.3.4
 pandas==3.0.5
 scikit-learn==1.9.0
 imbalanced-learn==0.14.2
-xgboost==3.4.1
+xgboost==2.1.4
 streamlit==1.63.0
 joblib==1.6.0
 pytest==9.1.1
