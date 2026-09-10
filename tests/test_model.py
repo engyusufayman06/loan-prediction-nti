@@ -3,31 +3,46 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from src.model import MODEL_INPUT_COLUMNS, NUMERIC_CLIP_COLUMNS, _clean_and_encode, predict_batch
+from src.model import (
+    ENGINEERED_FEATURES,
+    MODEL_INPUT_COLUMNS,
+    _clean_and_encode,
+    predict_batch,
+)
 
 
 DATA_PATH = Path(__file__).resolve().parents[1] / "loan_data.csv"
 
 
-def test_dataset_has_expected_target():
+def test_dataset_has_expected_shape_and_target():
     df = pd.read_csv(DATA_PATH, nrows=10)
+    assert df.shape[1] == 14
     assert "loan_status" in df.columns
 
 
-def test_cleaning_removes_identifier_and_builds_iqr_bounds():
+def test_final_feature_engineering_is_numeric():
     df = pd.read_csv(DATA_PATH, nrows=100)
     X = df.drop(columns=["loan_status"])
-    cleaned, bounds = _clean_and_encode(X)
-    assert "loan_id" not in cleaned.columns
-    assert bounds
-    assert all(column in bounds for column in NUMERIC_CLIP_COLUMNS if column in X.columns)
+    cleaned, encoders = _clean_and_encode(X)
+
+    assert set(ENGINEERED_FEATURES).issubset(cleaned.columns)
+    assert len(cleaned.columns) == 18
+    assert encoders
+    assert all(pd.api.types.is_numeric_dtype(dtype) for dtype in cleaned.dtypes)
 
 
-def test_cleaning_returns_numeric_features():
-    df = pd.read_csv(DATA_PATH, nrows=100)
+def test_cleaning_applies_final_notebook_filters():
+    df = pd.read_csv(DATA_PATH)
     X = df.drop(columns=["loan_status"])
     cleaned, _ = _clean_and_encode(X)
-    assert all(pd.api.types.is_numeric_dtype(dtype) for dtype in cleaned.dtypes)
+
+    assert cleaned["person_age"].max() <= 80
+    assert cleaned["person_emp_exp"].max() <= 50
+    assert len(cleaned) == 44988
+
+
+def test_model_input_contract_has_13_raw_features():
+    assert len(MODEL_INPUT_COLUMNS) == 13
 
 
 def test_batch_inference_rejects_missing_columns():
