@@ -1,0 +1,31 @@
+name: Full Model Benchmark
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "scripts/full_model_benchmark.py"
+      - "src/model.py"
+      - "loan_data.csv"
+      - "requirements.txt"
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Compile
+        run: python -m compileall src scripts
+      - name: Run full model benchmark
+        env:
+          PYTHONPATH: .
+        run: python scripts/full_model_benchmark.py
