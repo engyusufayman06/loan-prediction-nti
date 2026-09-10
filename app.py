@@ -2,7 +2,7 @@ from pathlib import Path
 
 import streamlit as st
 
-from src.model import predict_one, train_model
+from src.model import MODEL_INPUT_COLUMNS, predict_one, train_model
 
 ROOT = Path(__file__).resolve().parent
 DATA_PATH = ROOT / "loan_data.csv"
@@ -11,21 +11,19 @@ st.set_page_config(page_title="Loan Prediction", page_icon="💳", layout="cente
 
 st.title("💳 Loan Prediction")
 st.caption("Simple XGBoost model demo")
-st.write("Enter the applicant information and test the trained model.")
 
-
-@st.cache_resource(show_spinner="Training model...")
-def load_model():
-    return train_model(DATA_PATH)
-
-
-try:
-    bundle, _ = load_model()
-except Exception as exc:
-    st.error(f"Could not load the model: {exc}")
+if not DATA_PATH.exists():
+    st.error("loan_data.csv was not found in the repository.")
     st.stop()
 
-st.divider()
+
+@st.cache_resource(show_spinner=False)
+def load_model(data_path: str):
+    return train_model(data_path)
+
+
+st.info("Enter the applicant data, then click Predict. The model is trained once and cached.")
+
 st.subheader("Applicant Information")
 
 col1, col2 = st.columns(2)
@@ -57,27 +55,31 @@ with col2:
         ["High School", "Associate", "Bachelor", "Master", "Doctorate"],
     )
 
+applicant = {
+    "person_age": age,
+    "person_income": income,
+    "person_home_ownership": home,
+    "person_emp_exp": emp_exp,
+    "loan_intent": intent,
+    "loan_amnt": loan_amount,
+    "loan_int_rate": interest_rate,
+    "loan_percent_income": loan_percent_income,
+    "cb_person_cred_hist_length": credit_history,
+    "credit_score": credit_score,
+    "previous_loan_defaults_on_file": previous_default,
+    "person_gender": gender,
+    "person_education": education,
+}
+
 st.divider()
 
 if st.button("🔮 Predict Loan Status", type="primary", use_container_width=True):
-    applicant = {
-        "person_age": age,
-        "person_income": income,
-        "person_home_ownership": home,
-        "person_emp_exp": emp_exp,
-        "loan_intent": intent,
-        "loan_amnt": loan_amount,
-        "loan_int_rate": interest_rate,
-        "loan_percent_income": loan_percent_income,
-        "cb_person_cred_hist_length": credit_history,
-        "credit_score": credit_score,
-        "previous_loan_defaults_on_file": previous_default,
-        "person_gender": gender,
-        "person_education": education,
-    }
-
     try:
+        with st.spinner("Training the XGBoost model on loan_data.csv (first run only)..."):
+            bundle, metrics = load_model(str(DATA_PATH))
+
         result = predict_one(bundle, applicant)
+
         if result["prediction"] == 1:
             st.success("### ✅ Loan Status: Approved")
         else:
@@ -86,8 +88,15 @@ if st.button("🔮 Predict Loan Status", type="primary", use_container_width=Tru
         c1, c2 = st.columns(2)
         c1.metric("Approval Probability", f"{result['approval_probability']:.2%}")
         c2.metric("Rejection Probability", f"{result['rejection_probability']:.2%}")
-    except Exception as exc:
-        st.error(f"Prediction failed: {exc}")
 
-st.divider()
-st.caption("XGBoost • Test Accuracy: 93.47% • Educational project — not a real lending decision system.")
+        with st.expander("Model details"):
+            st.write(f"Test Accuracy: {metrics['accuracy']:.2%}")
+            st.write(f"Precision: {metrics['precision']:.4f}")
+            st.write(f"Recall: {metrics['recall']:.4f}")
+            st.write(f"F1 Score: {metrics['f1']:.4f}")
+
+    except Exception as exc:
+        st.error("The model could not be loaded or trained.")
+        st.exception(exc)
+
+st.caption("Educational ML demo — not a real lending decision system.")
